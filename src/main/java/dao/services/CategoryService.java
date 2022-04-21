@@ -237,6 +237,7 @@ public abstract class CategoryService {
 	
 	
 	
+	
 	public abstract boolean insertCategory(Category category);
 	
 	public abstract boolean insertCategoryInCategoryPairsFromRedisDB(Category category); 

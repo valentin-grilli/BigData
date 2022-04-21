@@ -59,6 +59,8 @@ public class SimpleCondition<E> extends Condition<E> {
 			return evaluateShipper((Shipper) obj);
 		if(obj instanceof ProductInfo)
 			return evaluateProductInfo((ProductInfo) obj);
+		if(obj instanceof StockInfo)
+			return evaluateStockInfo((StockInfo) obj);
 		if(obj instanceof Customer)
 			return evaluateCustomer((Customer) obj);
 		if(obj instanceof Order)
@@ -112,6 +114,24 @@ public class SimpleCondition<E> extends Condition<E> {
 			objectValue = obj.getReorderLevel();
 		if(attr == ProductInfoAttribute.discontinued)
 			objectValue = obj.getDiscontinued();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+	private boolean evaluateStockInfo(StockInfo obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		StockInfoAttribute attr = (StockInfoAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == StockInfoAttribute.id)
+			objectValue = obj.getId();
+		if(attr == StockInfoAttribute.unitsInStock)
+			objectValue = obj.getUnitsInStock();
+		if(attr == StockInfoAttribute.unitsOnOrder)
+			objectValue = obj.getUnitsOnOrder();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}

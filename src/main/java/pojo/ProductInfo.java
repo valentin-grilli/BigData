@@ -15,6 +15,10 @@ public class ProductInfo extends LoggingPojo {
 	private Integer reorderLevel;
 	private Boolean discontinued;
 
+	public enum concern {
+		product
+	}
+	private StockInfo stock;
 
 	// Empty constructor
 	public ProductInfo() {}
@@ -49,6 +53,7 @@ public class ProductInfo extends LoggingPojo {
 		boolean eqSimpleAttr = Objects.equals(id,ProductInfo.id) && Objects.equals(name,ProductInfo.name) && Objects.equals(supplierRef,ProductInfo.supplierRef) && Objects.equals(categoryRef,ProductInfo.categoryRef) && Objects.equals(quantityPerUnit,ProductInfo.quantityPerUnit) && Objects.equals(unitPrice,ProductInfo.unitPrice) && Objects.equals(reorderLevel,ProductInfo.reorderLevel) && Objects.equals(discontinued,ProductInfo.discontinued);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
+	Objects.equals(stock, ProductInfo.stock) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -124,4 +129,11 @@ public class ProductInfo extends LoggingPojo {
 
 	
 
+	public StockInfo _getStock() {
+		return stock;
+	}
+
+	public void _setStock(StockInfo stock) {
+		this.stock = stock;
+	}
 }

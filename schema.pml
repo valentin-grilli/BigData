@@ -39,6 +39,14 @@ conceptual schema conceptualSchema {
 			id
 		}
 	}
+	entity type StockInfo {
+		id : int,
+		unitsInStock : int,
+		unitsOnOrder : int
+		identifier {
+			id
+		}
+	}
 	entity type Customer {
 		id : string,
 		city : string,
@@ -85,6 +93,11 @@ conceptual schema conceptualSchema {
 		order[0-N]: Order,
 		client[1]: Customer
 	}
+	//relationship between ProductInfo and ProductStrock
+	relationship type concern {
+		stock[0-1]: StockInfo,
+		product[0-1]: ProductInfo
+	}
 }
 //Physical schema
 physical schemas {
@@ -95,6 +108,18 @@ physical schemas {
 				CategoryName,
 				Description,
 				Picture
+			}
+		}
+		kvpairs stockInfoPairs {
+			key : "PRODUCT:"[productid]":STOCKINFO",
+			value : hash {
+				UnitsInStock,
+				UnitsOnOrder
+			}
+			//Link to mysqlDB
+			references {
+				//name : link
+				concerned : productid -> relSchema.ProductsInfo.ProductID
 			}
 		}
 	}
@@ -160,6 +185,12 @@ physical schemas {
 	}
 }
 mapping rules {
+	//Mapping StockInfo relationnal physical
+	conceptualSchema.StockInfo(id, unitsInStock, unitsOnOrder) -> kv.stockInfoPairs(productid, UnitsInStock, UnitsOnOrder),
+	//Mapping between StockInfo and ProductInfo
+	conceptualSchema.ProductInfo(id) -> kv.stockInfoPairs(productid),
+	conceptualSchema.concern.stock -> kv.stockInfoPairs.concerned,
+	
 	//Mapping Redis Category conceptual physical
 	conceptualSchema.Category(id, categoryName, description, picture) -> kv.categoryPairs(categoryid, CategoryName, Description, Picture),
 	

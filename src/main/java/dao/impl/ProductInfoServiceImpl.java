@@ -415,14 +415,157 @@ public class ProductInfoServiceImpl extends ProductInfoService {
 	
 	
 	
+	//TODO redis
+	public Dataset<ProductInfo> getProductInfoListInStockInfoPairsFromRedisDB(conditions.Condition<conditions.ProductInfoAttribute> condition, MutableBoolean refilterFlag){
+		// Build the key pattern
+		//  - If the condition attribute is in the key pattern, replace by the value. Only if operator is EQUALS.
+		//  - Replace all other fields of key pattern by a '*' 
+		String keypattern= "", keypatternAllVariables="";
+		String valueCond=null;
+		String finalKeypattern;
+		List<String> fieldsListInKey = new ArrayList<>();
+		Set<ProductInfoAttribute> keyAttributes = new HashSet<>();
+		keypattern=keypattern.concat("PRODUCT:");
+		keypatternAllVariables=keypatternAllVariables.concat("PRODUCT:");
+		if(!Util.containsOrCondition(condition)){
+			valueCond=Util.getStringValue(Util.getValueOfAttributeInEqualCondition(condition,ProductInfoAttribute.id));
+			keyAttributes.add(ProductInfoAttribute.id);
+		}
+		else{
+			valueCond=null;
+			refilterFlag.setValue(true);
+		}
+		if(valueCond==null)
+			keypattern=keypattern.concat("*");
+		else
+			keypattern=keypattern.concat(valueCond);
+		fieldsListInKey.add("productid");
+		keypatternAllVariables=keypatternAllVariables.concat("*");
+		keypattern=keypattern.concat(":STOCKINFO");
+		keypatternAllVariables=keypatternAllVariables.concat(":STOCKINFO");
+		if(!refilterFlag.booleanValue()){
+			Set<ProductInfoAttribute> conditionAttributes = Util.getConditionAttributes(condition);
+			for (ProductInfoAttribute a : conditionAttributes) {
+				if (!keyAttributes.contains(a)) {
+					refilterFlag.setValue(true);
+					break;
+				}
+			}
+		}
+	
+			
+		// Find the type of query to perform in order to retrieve a Dataset<Row>
+		// Based on the type of the value. Is a it a simple string or a hash or a list... 
+		Dataset<Row> rows;
+		StructType structType = new StructType(new StructField[] {
+			DataTypes.createStructField("_id", DataTypes.StringType, true), //technical field to store the key.
+			DataTypes.createStructField("UnitsInStock", DataTypes.StringType, true)
+	,		DataTypes.createStructField("UnitsOnOrder", DataTypes.StringType, true)
+		});
+		rows = SparkConnectionMgr.getRowsFromKeyValueHashes("redisDB",keypattern, structType);
+		if(rows == null || rows.isEmpty())
+				return null;
+		boolean isStriped = false;
+		String prefix=isStriped?keypattern.substring(0, keypattern.length() - 1):"";
+		finalKeypattern = keypatternAllVariables;
+		Dataset<ProductInfo> res = rows.map((MapFunction<Row, ProductInfo>) r -> {
+					ProductInfo productInfo_res = new ProductInfo();
+					Integer groupindex = null;
+					String regex = null;
+					String value = null;
+					Pattern p, pattern = null;
+					Matcher m, match = null;
+					boolean matches = false;
+					String key = isStriped ? prefix + r.getAs("_id") : r.getAs("_id");
+					// Spark Redis automatically strips leading character if the pattern provided contains a single '*' at the end.				
+					pattern = Pattern.compile("\\*");
+			        match = pattern.matcher(finalKeypattern);
+					regex = finalKeypattern.replaceAll("\\*","(.*)");
+					p = Pattern.compile(regex);
+					m = p.matcher(key);
+					matches = m.find();
+					// attribute [ProductInfo.Id]
+					// Attribute mapped in a key.
+					groupindex = fieldsListInKey.indexOf("productid")+1;
+					if(groupindex==null) {
+						logger.warn("Attribute 'ProductInfo' mapped physical field 'productid' found in key but can't get index in build keypattern '{}'.", finalKeypattern);
+					}
+					String id = null;
+					if(matches) {
+						id = m.group(groupindex.intValue());
+					} else {
+						logger.warn("Cannot retrieve value for ProductInfoid attribute stored in db redisDB. Regex [{}] Value [{}]",regex,value);
+						productInfo_res.addLogEvent("Cannot retrieve value for ProductInfo.id attribute stored in db redisDB. Probably due to an ambiguous regex.");
+					}
+					productInfo_res.setId(id == null ? null : Integer.parseInt(id));
+	
+						return productInfo_res;
+				}, Encoders.bean(ProductInfo.class));
+		res=res.dropDuplicates(new String[] {"id"});
+		return res;
+		
+	}
 	
 	
+	
+	
+	
+	
+	public Dataset<ProductInfo> getProductListInConcern(conditions.Condition<conditions.StockInfoAttribute> stock_condition,conditions.Condition<conditions.ProductInfoAttribute> product_condition)		{
+		MutableBoolean product_refilter = new MutableBoolean(false);
+		List<Dataset<ProductInfo>> datasetsPOJO = new ArrayList<Dataset<ProductInfo>>();
+		Dataset<StockInfo> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean stock_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		
+		stock_refilter = new MutableBoolean(false);
+		// For role 'stock' in reference 'concerned'  B->A Scenario
+		Dataset<StockInfoTDO> stockInfoTDOconcernedstock = concernService.getStockInfoTDOListStockInConcernedInStockInfoPairsFromKv(stock_condition, stock_refilter);
+		Dataset<ProductInfoTDO> productInfoTDOconcernedproduct = concernService.getProductInfoTDOListProductInConcernedInStockInfoPairsFromKv(product_condition, product_refilter);
+		if(stock_refilter.booleanValue()) {
+			if(all == null)
+				all = new StockInfoServiceImpl().getStockInfoList(stock_condition);
+			joinCondition = null;
+			joinCondition = stockInfoTDOconcernedstock.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				stockInfoTDOconcernedstock = stockInfoTDOconcernedstock.as("A").join(all).select("A.*").as(Encoders.bean(StockInfoTDO.class));
+			else
+				stockInfoTDOconcernedstock = stockInfoTDOconcernedstock.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(StockInfoTDO.class));
+		}
+		Dataset<Row> res_concerned = 
+			productInfoTDOconcernedproduct.join(stockInfoTDOconcernedstock
+				.withColumnRenamed("id", "StockInfo_id")
+				.withColumnRenamed("unitsInStock", "StockInfo_unitsInStock")
+				.withColumnRenamed("unitsOnOrder", "StockInfo_unitsOnOrder")
+				.withColumnRenamed("logEvents", "StockInfo_logEvents"),
+				productInfoTDOconcernedproduct.col("kv_stockInfoPairs_concerned_ProductID").equalTo(stockInfoTDOconcernedstock.col("kv_stockInfoPairs_concerned_productid")));
+		Dataset<ProductInfo> res_ProductInfo_concerned = res_concerned.select( "id", "name", "supplierRef", "categoryRef", "quantityPerUnit", "unitPrice", "reorderLevel", "discontinued", "logEvents").as(Encoders.bean(ProductInfo.class));
+		res_ProductInfo_concerned = res_ProductInfo_concerned.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_ProductInfo_concerned);
+		
+		Dataset<Concern> res_concern_product;
+		Dataset<ProductInfo> res_ProductInfo;
+		
+		
+		//Join datasets or return 
+		Dataset<ProductInfo> res = fullOuterJoinsProductInfo(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		if(product_refilter.booleanValue())
+			res = res.filter((FilterFunction<ProductInfo>) r -> product_condition == null || product_condition.evaluate(r));
+		
+	
+		return res;
+		}
 	
 	
 	public boolean insertProductInfo(ProductInfo productInfo){
 		// Insert into all mapped standalone AbstractPhysicalStructure 
 		boolean inserted = false;
 			inserted = insertProductInfoInProductsInfoFromRelData(productInfo) || inserted ;
+			inserted = insertProductInfoInStockInfoPairsFromRedisDB(productInfo) || inserted ;
 		return inserted;
 	}
 	
@@ -457,6 +600,42 @@ public class ProductInfoServiceImpl extends ProductInfoService {
 		return !entityExists;
 	} 
 	
+	public boolean insertProductInfoInStockInfoPairsFromRedisDB(ProductInfo productInfo)	{
+		String idvalue="";
+		idvalue+=productInfo.getId();
+		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
+		if(!entityExists){
+			String key="";
+			key += "PRODUCT:";
+			key += productInfo.getId();
+			key += ":STOCKINFO";
+			// Generate for hash value
+			boolean toAdd = false;
+			List<Tuple2<String,String>> hash = new ArrayList<>();
+			toAdd = false;
+			String _fieldname_UnitsInStock="UnitsInStock";
+			String _value_UnitsInStock="";
+			// When value is null for a field in the hash we dont add it to the hash.
+			if(toAdd)
+				hash.add(new Tuple2<String,String>(_fieldname_UnitsInStock,_value_UnitsInStock));
+			toAdd = false;
+			String _fieldname_UnitsOnOrder="UnitsOnOrder";
+			String _value_UnitsOnOrder="";
+			// When value is null for a field in the hash we dont add it to the hash.
+			if(toAdd)
+				hash.add(new Tuple2<String,String>(_fieldname_UnitsOnOrder,_value_UnitsOnOrder));
+			
+			
+			
+			SparkConnectionMgr.writeKeyValueHash(key,hash, "redisDB");
+	
+			logger.info("Inserted [ProductInfo] entity ID [{}] in [StockInfoPairs] in database [RedisDB]", idvalue);
+		}
+		else
+			logger.warn("[ProductInfo] entity ID [{}] already present in [StockInfoPairs] in database [RedisDB]", idvalue);
+		return !entityExists;
+	} 
+	
 	private boolean inUpdateMethod = false;
 	private List<Row> allProductInfoIdList = null;
 	public void updateProductInfoList(conditions.Condition<conditions.ProductInfoAttribute> condition, conditions.SetClause<conditions.ProductInfoAttribute> set){
@@ -468,9 +647,17 @@ public class ProductInfoServiceImpl extends ProductInfoService {
 			if(refilterInProductsInfoFromRelData.booleanValue())
 				updateProductInfoListInProductsInfoFromRelData(condition, set);
 		
+			MutableBoolean refilterInStockInfoPairsFromRedisDB = new MutableBoolean(false);
+			//TODO
+			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
+			if(refilterInStockInfoPairsFromRedisDB.booleanValue())
+				updateProductInfoListInStockInfoPairsFromRedisDB(condition, set);
+		
 	
 			if(!refilterInProductsInfoFromRelData.booleanValue())
 				updateProductInfoListInProductsInfoFromRelData(condition, set);
+			if(!refilterInStockInfoPairsFromRedisDB.booleanValue())
+				updateProductInfoListInStockInfoPairsFromRedisDB(condition, set);
 	
 		} finally {
 			inUpdateMethod = false;
@@ -529,12 +716,45 @@ public class ProductInfoServiceImpl extends ProductInfoService {
 		}
 		
 	}
+	public void updateProductInfoListInStockInfoPairsFromRedisDB(Condition<ProductInfoAttribute> condition, SetClause<ProductInfoAttribute> set) {
+		//TODO
+	}
 	
 	
 	
 	public void updateProductInfo(pojo.ProductInfo productinfo) {
 		//TODO using the id
 		return;
+	}
+	public void updateProductListInConcern(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition,
+		
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateProductListInConcernByStockCondition(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	){
+		updateProductListInConcern(stock_condition, null, set);
+	}
+	
+	public void updateProductInConcernByStock(
+		pojo.StockInfo stock,
+		conditions.SetClause<conditions.ProductInfoAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateProductListInConcernByProductCondition(
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition,
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	){
+		updateProductListInConcern(null, product_condition, set);
 	}
 	
 	
@@ -545,6 +765,30 @@ public class ProductInfoServiceImpl extends ProductInfoService {
 	public void deleteProductInfo(pojo.ProductInfo productinfo) {
 		//TODO using the id
 		return;
+	}
+	public void deleteProductListInConcern(	
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,	
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition){
+			//TODO
+		}
+	
+	public void deleteProductListInConcernByStockCondition(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition
+	){
+		deleteProductListInConcern(stock_condition, null);
+	}
+	
+	public void deleteProductInConcernByStock(
+		pojo.StockInfo stock 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteProductListInConcernByProductCondition(
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition
+	){
+		deleteProductListInConcern(null, product_condition);
 	}
 	
 }

@@ -16,17 +16,23 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import conditions.Condition;
 import conditions.Operator;
 import util.Util;
+import conditions.ProductInfoAttribute;
+import pojo.Concern;
+import conditions.StockInfoAttribute;
+import pojo.StockInfo;
 
 public abstract class ProductInfoService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ProductInfoService.class);
+	protected ConcernService concernService = new dao.impl.ConcernServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		
+		CONCERN_PRODUCT
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
+		defaultLoadingParameters.put(ROLE_NAME.CONCERN_PRODUCT, loading.Loading.EAGER);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -81,6 +87,9 @@ public abstract class ProductInfoService {
 		d = getProductInfoListInProductsInfoFromRelData(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
+		d = getProductInfoListInStockInfoPairsFromRedisDB(condition, refilterFlag);
+		if(d != null)
+			datasets.add(d);
 		
 		if(datasets.size() == 0)
 			return null;
@@ -100,6 +109,12 @@ public abstract class ProductInfoService {
 	
 	
 	public abstract Dataset<ProductInfo> getProductInfoListInProductsInfoFromRelData(conditions.Condition<conditions.ProductInfoAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
+	
+	
+	public abstract Dataset<ProductInfo> getProductInfoListInStockInfoPairsFromRedisDB(conditions.Condition<conditions.ProductInfoAttribute> condition, MutableBoolean refilterFlag);
 	
 	
 	public ProductInfo getProductInfoById(Integer id){
@@ -313,13 +328,59 @@ public abstract class ProductInfoService {
 	
 	
 	
+	public ProductInfo getProductInfo(ProductInfo.concern role, StockInfo stockInfo) {
+		if(role != null) {
+			if(role.equals(ProductInfo.concern.product))
+				return getProductInConcernByStock(stockInfo);
+		}
+		return null;
+	}
+	
+	public Dataset<ProductInfo> getProductInfoList(ProductInfo.concern role, Condition<StockInfoAttribute> condition) {
+		if(role != null) {
+			if(role.equals(ProductInfo.concern.product))
+				return getProductListInConcernByStockCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<ProductInfo> getProductInfoList(ProductInfo.concern role, Condition<StockInfoAttribute> condition1, Condition<ProductInfoAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(ProductInfo.concern.product))
+				return getProductListInConcern(condition1, condition2);
+		}
+		return null;
+	}
 	
 	
+	
+	
+	
+	public abstract Dataset<ProductInfo> getProductListInConcern(conditions.Condition<conditions.StockInfoAttribute> stock_condition,conditions.Condition<conditions.ProductInfoAttribute> product_condition);
+	
+	public Dataset<ProductInfo> getProductListInConcernByStockCondition(conditions.Condition<conditions.StockInfoAttribute> stock_condition){
+		return getProductListInConcern(stock_condition, null);
+	}
+	
+	public ProductInfo getProductInConcernByStock(pojo.StockInfo stock){
+		if(stock == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(StockInfoAttribute.id,Operator.EQUALS, stock.getId());
+		Dataset<ProductInfo> res = getProductListInConcernByStockCondition(c);
+		return !res.isEmpty()?res.first():null;
+	}
+	
+	public Dataset<ProductInfo> getProductListInConcernByProductCondition(conditions.Condition<conditions.ProductInfoAttribute> product_condition){
+		return getProductListInConcern(null, product_condition);
+	}
 	
 	
 	public abstract boolean insertProductInfo(ProductInfo productInfo);
 	
 	public abstract boolean insertProductInfoInProductsInfoFromRelData(ProductInfo productInfo); 
+	public abstract boolean insertProductInfoInStockInfoPairsFromRedisDB(ProductInfo productInfo); 
 	private boolean inUpdateMethod = false;
 	private List<Row> allProductInfoIdList = null;
 	public abstract void updateProductInfoList(conditions.Condition<conditions.ProductInfoAttribute> condition, conditions.SetClause<conditions.ProductInfoAttribute> set);
@@ -328,6 +389,34 @@ public abstract class ProductInfoService {
 		//TODO using the id
 		return;
 	}
+	public abstract void updateProductListInConcern(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition,
+		
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	);
+	
+	public void updateProductListInConcernByStockCondition(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	){
+		updateProductListInConcern(stock_condition, null, set);
+	}
+	
+	public void updateProductInConcernByStock(
+		pojo.StockInfo stock,
+		conditions.SetClause<conditions.ProductInfoAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateProductListInConcernByProductCondition(
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition,
+		conditions.SetClause<conditions.ProductInfoAttribute> set
+	){
+		updateProductListInConcern(null, product_condition, set);
+	}
 	
 	
 	public abstract void deleteProductInfoList(conditions.Condition<conditions.ProductInfoAttribute> condition);
@@ -335,6 +424,28 @@ public abstract class ProductInfoService {
 	public void deleteProductInfo(pojo.ProductInfo productinfo) {
 		//TODO using the id
 		return;
+	}
+	public abstract void deleteProductListInConcern(	
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition,	
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition);
+	
+	public void deleteProductListInConcernByStockCondition(
+		conditions.Condition<conditions.StockInfoAttribute> stock_condition
+	){
+		deleteProductListInConcern(stock_condition, null);
+	}
+	
+	public void deleteProductInConcernByStock(
+		pojo.StockInfo stock 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteProductListInConcernByProductCondition(
+		conditions.Condition<conditions.ProductInfoAttribute> product_condition
+	){
+		deleteProductListInConcern(null, product_condition);
 	}
 	
 }

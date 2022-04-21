@@ -406,6 +406,7 @@ public abstract class OrderService {
 	
 	
 	
+	
 	public abstract Dataset<Order> getOrderListInMake_by(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.CustomerAttribute> client_condition);
 	
 	public Dataset<Order> getOrderListInMake_byByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){

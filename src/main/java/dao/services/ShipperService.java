@@ -217,6 +217,7 @@ public abstract class ShipperService {
 	
 	
 	
+	
 	public abstract boolean insertShipper(Shipper shipper);
 	
 	public abstract boolean insertShipperInShippersFromRelData(Shipper shipper); 
