@@ -21,7 +21,15 @@ public class Order extends LoggingPojo {
 	public enum make_by {
 		order
 	}
-	private List<Customer> clientList;
+	private Customer client;
+	public enum ship_via {
+		order
+	}
+	private Shipper shipper;
+	public enum handle {
+		order
+	}
+	private Employee employee;
 
 	// Empty constructor
 	public Order() {}
@@ -59,7 +67,9 @@ public class Order extends LoggingPojo {
 		boolean eqSimpleAttr = Objects.equals(id,Order.id) && Objects.equals(freight,Order.freight) && Objects.equals(orderDate,Order.orderDate) && Objects.equals(requiredDate,Order.requiredDate) && Objects.equals(shipAddress,Order.shipAddress) && Objects.equals(shipCity,Order.shipCity) && Objects.equals(shipCountry,Order.shipCountry) && Objects.equals(shipName,Order.shipName) && Objects.equals(shipPostalCode,Order.shipPostalCode) && Objects.equals(shipRegion,Order.shipRegion) && Objects.equals(shippedDate,Order.shippedDate);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
-	Objects.equals(clientList, Order.clientList) &&
+	Objects.equals(client, Order.client) &&
+	Objects.equals(shipper, Order.shipper) &&
+	Objects.equals(employee, Order.employee) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -159,11 +169,25 @@ public class Order extends LoggingPojo {
 
 	
 
-	public List<Customer> _getClientList() {
-		return clientList;
+	public Customer _getClient() {
+		return client;
 	}
 
-	public void _setClientList(List<Customer> clientList) {
-		this.clientList = clientList;
+	public void _setClient(Customer client) {
+		this.client = client;
+	}
+	public Shipper _getShipper() {
+		return shipper;
+	}
+
+	public void _setShipper(Shipper shipper) {
+		this.shipper = shipper;
+	}
+	public Employee _getEmployee() {
+		return employee;
+	}
+
+	public void _setEmployee(Employee employee) {
+		this.employee = employee;
 	}
 }

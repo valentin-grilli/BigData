@@ -54,291 +54,6 @@ public class CustomerServiceImpl extends CustomerService {
 	
 	
 	
-	public static Pair<List<String>, List<String>> getBSONUpdateQueryInOrdersFromMyMongoDB(conditions.SetClause<CustomerAttribute> set) {
-		List<String> res = new ArrayList<String>();
-		Set<String> arrayFields = new HashSet<String>();
-		if(set != null) {
-			java.util.Map<String, java.util.Map<String, String>> longFieldValues = new java.util.HashMap<String, java.util.Map<String, String>>();
-			java.util.Map<CustomerAttribute, Object> clause = set.getClause();
-			for(java.util.Map.Entry<CustomerAttribute, Object> e : clause.entrySet()) {
-				CustomerAttribute attr = e.getKey();
-				Object value = e.getValue();
-				if(attr == CustomerAttribute.id ) {
-					String fieldName = "CustomerID";
-					fieldName = "customer." + fieldName;
-					fieldName = "'" + fieldName + "'";
-					res.add(fieldName + " : " + Util.getDelimitedMongoValue((value == null ? null : value.getClass()), (value == null ? null : value.toString())));
-				}
-				if(attr == CustomerAttribute.companyName ) {
-					String fieldName = "ContactName";
-					fieldName = "customer." + fieldName;
-					fieldName = "'" + fieldName + "'";
-					res.add(fieldName + " : " + Util.getDelimitedMongoValue((value == null ? null : value.getClass()), (value == null ? null : value.toString())));
-				}
-			}
-	
-			for(java.util.Map.Entry<String, java.util.Map<String, String>> entry : longFieldValues.entrySet()) {
-				String longField = entry.getKey();
-				java.util.Map<String, String> values = entry.getValue();
-			}
-	
-		}
-		return new ImmutablePair<List<String>, List<String>>(res, new ArrayList<String>(arrayFields));
-	}
-	
-	public static String getBSONMatchQueryInOrdersFromMyMongoDB(Condition<CustomerAttribute> condition, MutableBoolean refilterFlag) {	
-		String res = null;	
-		if(condition != null) {
-			if(condition instanceof SimpleCondition) {
-				CustomerAttribute attr = ((SimpleCondition<CustomerAttribute>) condition).getAttribute();
-				Operator op = ((SimpleCondition<CustomerAttribute>) condition).getOperator();
-				Object value = ((SimpleCondition<CustomerAttribute>) condition).getValue();
-				if(value != null) {
-					String valueString = Util.transformBSONValue(value);
-					boolean isConditionAttrEncountered = false;
-	
-					if(attr == CustomerAttribute.id ) {
-						isConditionAttrEncountered = true;
-					
-						String mongoOp = op.getMongoDBOperator();
-						String preparedValue = valueString;
-						if(op == Operator.CONTAINS && valueString != null) {
-							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
-						} else {
-							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
-						}
-						res = "CustomerID': {" + mongoOp + ": " + preparedValue + "}";
-	
-						res = "customer." + res;
-					res = "'" + res;
-					}
-					if(attr == CustomerAttribute.companyName ) {
-						isConditionAttrEncountered = true;
-					
-						String mongoOp = op.getMongoDBOperator();
-						String preparedValue = valueString;
-						if(op == Operator.CONTAINS && valueString != null) {
-							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
-						} else {
-							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
-						}
-						res = "ContactName': {" + mongoOp + ": " + preparedValue + "}";
-	
-						res = "customer." + res;
-					res = "'" + res;
-					}
-					if(!isConditionAttrEncountered) {
-						refilterFlag.setValue(true);
-						res = "$expr: {$eq:[1,1]}";
-					}
-					
-				}
-			}
-	
-			if(condition instanceof AndCondition) {
-				String bsonLeft = getBSONMatchQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), refilterFlag);
-				String bsonRight = getBSONMatchQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), refilterFlag);			
-				if(bsonLeft == null && bsonRight == null)
-					return null;
-				if(bsonLeft == null)
-					return bsonRight;
-				if(bsonRight == null)
-					return bsonLeft;
-				res = " $and: [ {" + bsonLeft + "}, {" + bsonRight + "}] ";
-			}
-	
-			if(condition instanceof OrCondition) {
-				String bsonLeft = getBSONMatchQueryInOrdersFromMyMongoDB(((OrCondition)condition).getLeftCondition(), refilterFlag);
-				String bsonRight = getBSONMatchQueryInOrdersFromMyMongoDB(((OrCondition)condition).getRightCondition(), refilterFlag);			
-				if(bsonLeft == null && bsonRight == null)
-					return null;
-				if(bsonLeft == null)
-					return bsonRight;
-				if(bsonRight == null)
-					return bsonLeft;
-				res = " $or: [ {" + bsonLeft + "}, {" + bsonRight + "}] ";	
-			}
-	
-			
-	
-			
-		}
-	
-		return res;
-	}
-	
-	public static Pair<String, List<String>> getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(Condition<CustomerAttribute> condition, final List<String> arrayVariableNames, Set<String> arrayVariablesUsed, MutableBoolean refilterFlag) {	
-		String query = null;
-		List<String> arrayFilters = new ArrayList<String>();
-		if(condition != null) {
-			if(condition instanceof SimpleCondition) {
-				String bson = null;
-				CustomerAttribute attr = ((SimpleCondition<CustomerAttribute>) condition).getAttribute();
-				Operator op = ((SimpleCondition<CustomerAttribute>) condition).getOperator();
-				Object value = ((SimpleCondition<CustomerAttribute>) condition).getValue();
-				if(value != null) {
-					String valueString = Util.transformBSONValue(value);
-					boolean isConditionAttrEncountered = false;
-	
-					if(attr == CustomerAttribute.id ) {
-						isConditionAttrEncountered = true;
-						String mongoOp = op.getMongoDBOperator();
-						String preparedValue = valueString;
-						if(op == Operator.CONTAINS && valueString != null) {
-							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
-						} else {
-							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
-						}
-						bson = "CustomerID': {" + mongoOp + ": " + preparedValue + "}";
-					
-						boolean arrayVar = false;
-						if(!arrayVar) {
-							bson = "customer." + bson;
-						}
-	
-						bson = "'" + bson;
-						if(arrayVar)
-							arrayFilters.add(bson);
-						else
-							query = bson;
-					}
-					if(attr == CustomerAttribute.companyName ) {
-						isConditionAttrEncountered = true;
-						String mongoOp = op.getMongoDBOperator();
-						String preparedValue = valueString;
-						if(op == Operator.CONTAINS && valueString != null) {
-							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
-						} else {
-							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
-						}
-						bson = "ContactName': {" + mongoOp + ": " + preparedValue + "}";
-					
-						boolean arrayVar = false;
-						if(!arrayVar) {
-							bson = "customer." + bson;
-						}
-	
-						bson = "'" + bson;
-						if(arrayVar)
-							arrayFilters.add(bson);
-						else
-							query = bson;
-					}
-					if(!isConditionAttrEncountered) {
-						refilterFlag.setValue(true);
-					}
-					
-				}
-	
-			}
-	
-			if(condition instanceof AndCondition) {
-				Pair<String, List<String>> bsonLeft = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);
-				Pair<String, List<String>> bsonRight = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);			
-				
-				String queryLeft = bsonLeft.getLeft();
-				String queryRight = bsonRight.getLeft();
-				List<String> arrayFilterLeft = bsonLeft.getRight();
-				List<String> arrayFilterRight = bsonRight.getRight();
-	
-				if(queryLeft == null && queryRight != null)
-					query = queryRight;
-				if(queryLeft != null && queryRight == null)
-					query = queryLeft;
-				if(queryLeft != null && queryRight != null)
-					query = " $and: [ {" + queryLeft + "}, {" + queryRight + "}] ";
-	
-				arrayFilters.addAll(arrayFilterLeft);
-				arrayFilters.addAll(arrayFilterRight);
-			}
-	
-			if(condition instanceof OrCondition) {
-				Pair<String, List<String>> bsonLeft = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);
-				Pair<String, List<String>> bsonRight = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);			
-				
-				String queryLeft = bsonLeft.getLeft();
-				String queryRight = bsonRight.getLeft();
-				List<String> arrayFilterLeft = bsonLeft.getRight();
-				List<String> arrayFilterRight = bsonRight.getRight();
-	
-				if(queryLeft == null && queryRight != null)
-					query = queryRight;
-				if(queryLeft != null && queryRight == null)
-					query = queryLeft;
-				if(queryLeft != null && queryRight != null)
-					query = " $or: [ {" + queryLeft + "}, {" + queryRight + "}] ";
-	
-				arrayFilters.addAll(arrayFilterLeft);
-				arrayFilters.addAll(arrayFilterRight); // can be a problem
-			}
-		}
-	
-		return new ImmutablePair<String, List<String>>(query, arrayFilters);
-	}
-	
-	
-	
-	public Dataset<Customer> getCustomerListInOrdersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag){
-		String bsonQuery = CustomerServiceImpl.getBSONMatchQueryInOrdersFromMyMongoDB(condition, refilterFlag);
-		if(bsonQuery != null) {
-			bsonQuery = "{$match: {" + bsonQuery + "}}";	
-		} 
-		
-		Dataset<Row> dataset = dbconnection.SparkConnectionMgr.getDatasetFromMongoDB("myMongoDB", "Orders", bsonQuery);
-	
-		Dataset<Customer> res = dataset.flatMap((FlatMapFunction<Row, Customer>) r -> {
-				Set<Customer> list_res = new HashSet<Customer>();
-				Integer groupIndex = null;
-				String regex = null;
-				String value = null;
-				Pattern p = null;
-				Matcher m = null;
-				boolean matches = false;
-				Row nestedRow = null;
-	
-				boolean addedInList = false;
-				Row r1 = r;
-				Customer customer1 = new Customer();
-					boolean toAdd1  = false;
-					WrappedArray array1  = null;
-					// 	attribute Customer.id for field CustomerID			
-					nestedRow =  r1;
-					nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("customer");
-					if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("CustomerID")) {
-						if(nestedRow.getAs("CustomerID")==null)
-							customer1.setId(null);
-						else{
-							customer1.setId(Util.getStringValue(nestedRow.getAs("CustomerID")));
-							toAdd1 = true;					
-							}
-					}
-					// 	attribute Customer.companyName for field ContactName			
-					nestedRow =  r1;
-					nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("customer");
-					if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("ContactName")) {
-						if(nestedRow.getAs("ContactName")==null)
-							customer1.setCompanyName(null);
-						else{
-							customer1.setCompanyName(Util.getStringValue(nestedRow.getAs("ContactName")));
-							toAdd1 = true;					
-							}
-					}
-					if(toAdd1) {
-						list_res.add(customer1);
-						addedInList = true;
-					} 
-					
-				
-				return list_res.iterator();
-	
-		}, Encoders.bean(Customer.class));
-		res= res.dropDuplicates(new String[]{"id"});
-		return res;
-		
-	}
-	
-	
-	
 	public static Pair<List<String>, List<String>> getBSONUpdateQueryInCustomersFromMyMongoDB(conditions.SetClause<CustomerAttribute> set) {
 		List<String> res = new ArrayList<String>();
 		Set<String> arrayFields = new HashSet<String>();
@@ -1044,6 +759,291 @@ public class CustomerServiceImpl extends CustomerService {
 	
 	
 	
+	public static Pair<List<String>, List<String>> getBSONUpdateQueryInOrdersFromMyMongoDB(conditions.SetClause<CustomerAttribute> set) {
+		List<String> res = new ArrayList<String>();
+		Set<String> arrayFields = new HashSet<String>();
+		if(set != null) {
+			java.util.Map<String, java.util.Map<String, String>> longFieldValues = new java.util.HashMap<String, java.util.Map<String, String>>();
+			java.util.Map<CustomerAttribute, Object> clause = set.getClause();
+			for(java.util.Map.Entry<CustomerAttribute, Object> e : clause.entrySet()) {
+				CustomerAttribute attr = e.getKey();
+				Object value = e.getValue();
+				if(attr == CustomerAttribute.id ) {
+					String fieldName = "CustomerID";
+					fieldName = "customer." + fieldName;
+					fieldName = "'" + fieldName + "'";
+					res.add(fieldName + " : " + Util.getDelimitedMongoValue((value == null ? null : value.getClass()), (value == null ? null : value.toString())));
+				}
+				if(attr == CustomerAttribute.companyName ) {
+					String fieldName = "ContactName";
+					fieldName = "customer." + fieldName;
+					fieldName = "'" + fieldName + "'";
+					res.add(fieldName + " : " + Util.getDelimitedMongoValue((value == null ? null : value.getClass()), (value == null ? null : value.toString())));
+				}
+			}
+	
+			for(java.util.Map.Entry<String, java.util.Map<String, String>> entry : longFieldValues.entrySet()) {
+				String longField = entry.getKey();
+				java.util.Map<String, String> values = entry.getValue();
+			}
+	
+		}
+		return new ImmutablePair<List<String>, List<String>>(res, new ArrayList<String>(arrayFields));
+	}
+	
+	public static String getBSONMatchQueryInOrdersFromMyMongoDB(Condition<CustomerAttribute> condition, MutableBoolean refilterFlag) {	
+		String res = null;	
+		if(condition != null) {
+			if(condition instanceof SimpleCondition) {
+				CustomerAttribute attr = ((SimpleCondition<CustomerAttribute>) condition).getAttribute();
+				Operator op = ((SimpleCondition<CustomerAttribute>) condition).getOperator();
+				Object value = ((SimpleCondition<CustomerAttribute>) condition).getValue();
+				if(value != null) {
+					String valueString = Util.transformBSONValue(value);
+					boolean isConditionAttrEncountered = false;
+	
+					if(attr == CustomerAttribute.id ) {
+						isConditionAttrEncountered = true;
+					
+						String mongoOp = op.getMongoDBOperator();
+						String preparedValue = valueString;
+						if(op == Operator.CONTAINS && valueString != null) {
+							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
+						} else {
+							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
+						}
+						res = "CustomerID': {" + mongoOp + ": " + preparedValue + "}";
+	
+						res = "customer." + res;
+					res = "'" + res;
+					}
+					if(attr == CustomerAttribute.companyName ) {
+						isConditionAttrEncountered = true;
+					
+						String mongoOp = op.getMongoDBOperator();
+						String preparedValue = valueString;
+						if(op == Operator.CONTAINS && valueString != null) {
+							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
+						} else {
+							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
+						}
+						res = "ContactName': {" + mongoOp + ": " + preparedValue + "}";
+	
+						res = "customer." + res;
+					res = "'" + res;
+					}
+					if(!isConditionAttrEncountered) {
+						refilterFlag.setValue(true);
+						res = "$expr: {$eq:[1,1]}";
+					}
+					
+				}
+			}
+	
+			if(condition instanceof AndCondition) {
+				String bsonLeft = getBSONMatchQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), refilterFlag);
+				String bsonRight = getBSONMatchQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), refilterFlag);			
+				if(bsonLeft == null && bsonRight == null)
+					return null;
+				if(bsonLeft == null)
+					return bsonRight;
+				if(bsonRight == null)
+					return bsonLeft;
+				res = " $and: [ {" + bsonLeft + "}, {" + bsonRight + "}] ";
+			}
+	
+			if(condition instanceof OrCondition) {
+				String bsonLeft = getBSONMatchQueryInOrdersFromMyMongoDB(((OrCondition)condition).getLeftCondition(), refilterFlag);
+				String bsonRight = getBSONMatchQueryInOrdersFromMyMongoDB(((OrCondition)condition).getRightCondition(), refilterFlag);			
+				if(bsonLeft == null && bsonRight == null)
+					return null;
+				if(bsonLeft == null)
+					return bsonRight;
+				if(bsonRight == null)
+					return bsonLeft;
+				res = " $or: [ {" + bsonLeft + "}, {" + bsonRight + "}] ";	
+			}
+	
+			
+	
+			
+		}
+	
+		return res;
+	}
+	
+	public static Pair<String, List<String>> getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(Condition<CustomerAttribute> condition, final List<String> arrayVariableNames, Set<String> arrayVariablesUsed, MutableBoolean refilterFlag) {	
+		String query = null;
+		List<String> arrayFilters = new ArrayList<String>();
+		if(condition != null) {
+			if(condition instanceof SimpleCondition) {
+				String bson = null;
+				CustomerAttribute attr = ((SimpleCondition<CustomerAttribute>) condition).getAttribute();
+				Operator op = ((SimpleCondition<CustomerAttribute>) condition).getOperator();
+				Object value = ((SimpleCondition<CustomerAttribute>) condition).getValue();
+				if(value != null) {
+					String valueString = Util.transformBSONValue(value);
+					boolean isConditionAttrEncountered = false;
+	
+					if(attr == CustomerAttribute.id ) {
+						isConditionAttrEncountered = true;
+						String mongoOp = op.getMongoDBOperator();
+						String preparedValue = valueString;
+						if(op == Operator.CONTAINS && valueString != null) {
+							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
+						} else {
+							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
+						}
+						bson = "CustomerID': {" + mongoOp + ": " + preparedValue + "}";
+					
+						boolean arrayVar = false;
+						if(!arrayVar) {
+							bson = "customer." + bson;
+						}
+	
+						bson = "'" + bson;
+						if(arrayVar)
+							arrayFilters.add(bson);
+						else
+							query = bson;
+					}
+					if(attr == CustomerAttribute.companyName ) {
+						isConditionAttrEncountered = true;
+						String mongoOp = op.getMongoDBOperator();
+						String preparedValue = valueString;
+						if(op == Operator.CONTAINS && valueString != null) {
+							preparedValue = "'.*" + Util.escapeReservedRegexMongo(valueString)  + ".*'";
+						} else {
+							preparedValue = Util.getDelimitedMongoValue(value.getClass(), preparedValue);
+						}
+						bson = "ContactName': {" + mongoOp + ": " + preparedValue + "}";
+					
+						boolean arrayVar = false;
+						if(!arrayVar) {
+							bson = "customer." + bson;
+						}
+	
+						bson = "'" + bson;
+						if(arrayVar)
+							arrayFilters.add(bson);
+						else
+							query = bson;
+					}
+					if(!isConditionAttrEncountered) {
+						refilterFlag.setValue(true);
+					}
+					
+				}
+	
+			}
+	
+			if(condition instanceof AndCondition) {
+				Pair<String, List<String>> bsonLeft = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);
+				Pair<String, List<String>> bsonRight = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);			
+				
+				String queryLeft = bsonLeft.getLeft();
+				String queryRight = bsonRight.getLeft();
+				List<String> arrayFilterLeft = bsonLeft.getRight();
+				List<String> arrayFilterRight = bsonRight.getRight();
+	
+				if(queryLeft == null && queryRight != null)
+					query = queryRight;
+				if(queryLeft != null && queryRight == null)
+					query = queryLeft;
+				if(queryLeft != null && queryRight != null)
+					query = " $and: [ {" + queryLeft + "}, {" + queryRight + "}] ";
+	
+				arrayFilters.addAll(arrayFilterLeft);
+				arrayFilters.addAll(arrayFilterRight);
+			}
+	
+			if(condition instanceof OrCondition) {
+				Pair<String, List<String>> bsonLeft = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getLeftCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);
+				Pair<String, List<String>> bsonRight = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(((AndCondition)condition).getRightCondition(), arrayVariableNames, arrayVariablesUsed, refilterFlag);			
+				
+				String queryLeft = bsonLeft.getLeft();
+				String queryRight = bsonRight.getLeft();
+				List<String> arrayFilterLeft = bsonLeft.getRight();
+				List<String> arrayFilterRight = bsonRight.getRight();
+	
+				if(queryLeft == null && queryRight != null)
+					query = queryRight;
+				if(queryLeft != null && queryRight == null)
+					query = queryLeft;
+				if(queryLeft != null && queryRight != null)
+					query = " $or: [ {" + queryLeft + "}, {" + queryRight + "}] ";
+	
+				arrayFilters.addAll(arrayFilterLeft);
+				arrayFilters.addAll(arrayFilterRight); // can be a problem
+			}
+		}
+	
+		return new ImmutablePair<String, List<String>>(query, arrayFilters);
+	}
+	
+	
+	
+	public Dataset<Customer> getCustomerListInOrdersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag){
+		String bsonQuery = CustomerServiceImpl.getBSONMatchQueryInOrdersFromMyMongoDB(condition, refilterFlag);
+		if(bsonQuery != null) {
+			bsonQuery = "{$match: {" + bsonQuery + "}}";	
+		} 
+		
+		Dataset<Row> dataset = dbconnection.SparkConnectionMgr.getDatasetFromMongoDB("myMongoDB", "Orders", bsonQuery);
+	
+		Dataset<Customer> res = dataset.flatMap((FlatMapFunction<Row, Customer>) r -> {
+				Set<Customer> list_res = new HashSet<Customer>();
+				Integer groupIndex = null;
+				String regex = null;
+				String value = null;
+				Pattern p = null;
+				Matcher m = null;
+				boolean matches = false;
+				Row nestedRow = null;
+	
+				boolean addedInList = false;
+				Row r1 = r;
+				Customer customer1 = new Customer();
+					boolean toAdd1  = false;
+					WrappedArray array1  = null;
+					// 	attribute Customer.id for field CustomerID			
+					nestedRow =  r1;
+					nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("customer");
+					if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("CustomerID")) {
+						if(nestedRow.getAs("CustomerID")==null)
+							customer1.setId(null);
+						else{
+							customer1.setId(Util.getStringValue(nestedRow.getAs("CustomerID")));
+							toAdd1 = true;					
+							}
+					}
+					// 	attribute Customer.companyName for field ContactName			
+					nestedRow =  r1;
+					nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("customer");
+					if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("ContactName")) {
+						if(nestedRow.getAs("ContactName")==null)
+							customer1.setCompanyName(null);
+						else{
+							customer1.setCompanyName(Util.getStringValue(nestedRow.getAs("ContactName")));
+							toAdd1 = true;					
+							}
+					}
+					if(toAdd1) {
+						list_res.add(customer1);
+						addedInList = true;
+					} 
+					
+				
+				return list_res.iterator();
+	
+		}, Encoders.bean(Customer.class));
+		res= res.dropDuplicates(new String[]{"id"});
+		return res;
+		
+	}
+	
+	
+	
 	
 	
 	
@@ -1058,23 +1058,6 @@ public class CustomerServiceImpl extends CustomerService {
 		
 		Dataset<Make_by> res_make_by_client;
 		Dataset<Customer> res_Customer;
-		// Role 'client' mapped to EmbeddedObject 'customer' - 'Order' containing 'Customer'
-		order_refilter = new MutableBoolean(false);
-		res_make_by_client = make_byService.getMake_byListInmongoSchemaOrderscustomer(client_condition, order_condition, client_refilter, order_refilter);
-		if(order_refilter.booleanValue()) {
-			if(all == null)
-				all = new OrderServiceImpl().getOrderList(order_condition);
-			joinCondition = null;
-			joinCondition = res_make_by_client.col("order.id").equalTo(all.col("id"));
-			if(joinCondition == null)
-				res_Customer = res_make_by_client.join(all).select("client.*").as(Encoders.bean(Customer.class));
-			else
-				res_Customer = res_make_by_client.join(all, joinCondition).select("client.*").as(Encoders.bean(Customer.class));
-		
-		} else
-			res_Customer = res_make_by_client.map((MapFunction<Make_by,Customer>) r -> r.getClient(), Encoders.bean(Customer.class));
-		res_Customer = res_Customer.dropDuplicates(new String[] {"id"});
-		datasetsPOJO.add(res_Customer);
 		
 		
 		//Join datasets or return 
@@ -1084,6 +1067,7 @@ public class CustomerServiceImpl extends CustomerService {
 	
 		List<Dataset<Customer>> lonelyCustomerList = new ArrayList<Dataset<Customer>>();
 		lonelyCustomerList.add(getCustomerListInCustomersFromMyMongoDB(client_condition, new MutableBoolean(false)));
+		lonelyCustomerList.add(getCustomerListInOrdersFromMyMongoDB(client_condition, new MutableBoolean(false)));
 		Dataset<Customer> lonelyCustomer = fullOuterJoinsCustomer(lonelyCustomerList);
 		if(lonelyCustomer != null) {
 			res = fullLeftOuterJoinsCustomer(Arrays.asList(res, lonelyCustomer));
@@ -1095,19 +1079,14 @@ public class CustomerServiceImpl extends CustomerService {
 		return res;
 		}
 	
-	public boolean insertCustomer(
-		Customer customer,
-		Order	orderMake_by){
-			boolean inserted = false;
-			// Insert in standalone structures
-			inserted = insertCustomerInCustomersFromMyMongoDB(customer)|| inserted ;
-			// Insert in structures containing double embedded role
-			// Insert in descending structures
-			// Insert in ascending structures 
-			// Insert in ref structures 
-			// Insert in ref structures mapped to opposite role of mandatory role  
-			return inserted;
-		}
+	
+	public boolean insertCustomer(Customer customer){
+		// Insert into all mapped standalone AbstractPhysicalStructure 
+		boolean inserted = false;
+			inserted = insertCustomerInCustomersFromMyMongoDB(customer) || inserted ;
+			inserted = insertCustomerInOrdersFromMyMongoDB(customer) || inserted ;
+		return inserted;
+	}
 	
 	public boolean insertCustomerInCustomersFromMyMongoDB(Customer customer)	{
 		String idvalue="";
@@ -1139,6 +1118,31 @@ public class CustomerServiceImpl extends CustomerService {
 		return !entityExists;
 	} 
 	
+	public boolean insertCustomerInOrdersFromMyMongoDB(Customer customer)	{
+		String idvalue="";
+		idvalue+=customer.getId();
+		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
+		if(!entityExists){
+		Bson filter = new Document();
+		Bson updateOp;
+		Document docOrders_1 = new Document();
+		// Embedded structure customer
+			Document doccustomer_2 = new Document();
+			doccustomer_2.append("CustomerID",customer.getId());
+			doccustomer_2.append("ContactName",customer.getCompanyName());
+			
+			docOrders_1.append("customer", doccustomer_2);
+		
+		filter = eq("CustomerID",customer.getId());
+		updateOp = setOnInsert(docOrders_1);
+		DBConnectionMgr.upsertMany(filter, updateOp, "Orders", "myMongoDB");
+			logger.info("Inserted [Customer] entity ID [{}] in [Orders] in database [MyMongoDB]", idvalue);
+		}
+		else
+			logger.warn("[Customer] entity ID [{}] already present in [Orders] in database [MyMongoDB]", idvalue);
+		return !entityExists;
+	} 
+	
 	private boolean inUpdateMethod = false;
 	private List<Row> allCustomerIdList = null;
 	public void updateCustomerList(conditions.Condition<conditions.CustomerAttribute> condition, conditions.SetClause<conditions.CustomerAttribute> set){
@@ -1150,9 +1154,17 @@ public class CustomerServiceImpl extends CustomerService {
 			if(refilterInCustomersFromMyMongoDB.booleanValue())
 				updateCustomerListInCustomersFromMyMongoDB(condition, set);
 		
+			MutableBoolean refilterInOrdersFromMyMongoDB = new MutableBoolean(false);
+			getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(condition, new ArrayList<String>(), new HashSet<String>(), refilterInOrdersFromMyMongoDB);
+			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
+			if(refilterInOrdersFromMyMongoDB.booleanValue())
+				updateCustomerListInOrdersFromMyMongoDB(condition, set);
+		
 	
 			if(!refilterInCustomersFromMyMongoDB.booleanValue())
 				updateCustomerListInCustomersFromMyMongoDB(condition, set);
+			if(!refilterInOrdersFromMyMongoDB.booleanValue())
+				updateCustomerListInOrdersFromMyMongoDB(condition, set);
 	
 		} finally {
 			inUpdateMethod = false;
@@ -1243,6 +1255,89 @@ public class CustomerServiceImpl extends CustomerService {
 			DBConnectionMgr.bulkUpdatesInMongoDB(updateQueries, "Customers", "myMongoDB");
 		}
 	}
+	public void updateCustomerListInOrdersFromMyMongoDB(Condition<CustomerAttribute> condition, SetClause<CustomerAttribute> set) {
+		Pair<List<String>, List<String>> updates = getBSONUpdateQueryInOrdersFromMyMongoDB(set);
+		List<String> sets = updates.getLeft();
+		final List<String> arrayVariableNames = updates.getRight();
+		String setBSON = null;
+		for(int i = 0; i < sets.size(); i++) {
+			if(i == 0)
+				setBSON = sets.get(i);
+			else
+				setBSON += ", " + sets.get(i);
+		}
+		
+		if(setBSON == null)
+			return;
+		
+		Document updateQuery = null;
+		setBSON = "{$set: {" + setBSON + "}}";
+		updateQuery = Document.parse(setBSON);
+		
+		MutableBoolean refilter = new MutableBoolean(false);
+		Set<String> arrayVariablesUsed = new HashSet<String>();
+		Pair<String, List<String>> queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(condition, arrayVariableNames, arrayVariablesUsed, refilter);
+		Document query = null;
+		String bsonQuery = queryAndArrayFilter.getLeft();
+		if(bsonQuery != null) {
+			bsonQuery = "{" + bsonQuery + "}";
+			query = Document.parse(bsonQuery);	
+		}
+		
+		List<Bson> arrayFilterDocs = new ArrayList<Bson>();
+		List<String> arrayFilters = queryAndArrayFilter.getRight();
+		for(String arrayFilter : arrayFilters)
+			arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
+		
+		for(String arrayVariableName : arrayVariableNames)
+			if(!arrayVariablesUsed.contains(arrayVariableName)) {
+				arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
+			}
+		
+		
+		if(!refilter.booleanValue()) {
+			if(arrayFilterDocs.size() == 0) {
+				DBConnectionMgr.update(query, updateQuery, "Orders", "myMongoDB");
+			} else {
+				DBConnectionMgr.upsertMany(query, updateQuery, arrayFilterDocs, "Orders", "myMongoDB");
+			}
+		
+			
+		} else {
+			if(!inUpdateMethod || allCustomerIdList == null)
+				allCustomerIdList = this.getCustomerList(condition).select("id").collectAsList();
+			List<com.mongodb.client.model.UpdateManyModel<Document>> updateQueries = new ArrayList<com.mongodb.client.model.UpdateManyModel<Document>>();
+			for(Row row : allCustomerIdList) {
+				Condition<CustomerAttribute> conditionId = null;
+				conditionId = Condition.simple(CustomerAttribute.id, Operator.EQUALS, row.getAs("id"));
+		
+				arrayVariablesUsed = new HashSet<String>();
+				queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(conditionId, arrayVariableNames, arrayVariablesUsed, refilter);
+				query = null;
+				bsonQuery = queryAndArrayFilter.getLeft();
+				if(bsonQuery != null) {
+					bsonQuery = "{" + bsonQuery + "}";
+					query = Document.parse(bsonQuery);	
+				}
+				
+				arrayFilterDocs = new ArrayList<Bson>();
+				arrayFilters = queryAndArrayFilter.getRight();
+				for(String arrayFilter : arrayFilters)
+					arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
+				
+				for(String arrayVariableName : arrayVariableNames)
+					if(!arrayVariablesUsed.contains(arrayVariableName)) {
+						arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
+					}
+				if(arrayFilterDocs.size() == 0)
+					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery));
+				else
+					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery, new com.mongodb.client.model.UpdateOptions().arrayFilters(arrayFilterDocs)));
+			}
+		
+			DBConnectionMgr.bulkUpdatesInMongoDB(updateQueries, "Orders", "myMongoDB");
+		}
+	}
 	
 	
 	
@@ -1266,7 +1361,7 @@ public class CustomerServiceImpl extends CustomerService {
 		updateClientListInMake_by(order_condition, null, set);
 	}
 	
-	public void updateClientListInMake_byByOrder(
+	public void updateClientInMake_byByOrder(
 		pojo.Order order,
 		conditions.SetClause<conditions.CustomerAttribute> set 
 	){
@@ -1302,7 +1397,7 @@ public class CustomerServiceImpl extends CustomerService {
 		deleteClientListInMake_by(order_condition, null);
 	}
 	
-	public void deleteClientListInMake_byByOrder(
+	public void deleteClientInMake_byByOrder(
 		pojo.Order order 
 	){
 		//TODO get id in condition

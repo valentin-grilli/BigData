@@ -773,23 +773,6 @@ public class OrderServiceImpl extends OrderService {
 		
 		Dataset<Make_by> res_make_by_order;
 		Dataset<Order> res_Order;
-		// Role 'client' mapped to EmbeddedObject 'customer' 'Order' containing 'Customer' 
-		client_refilter = new MutableBoolean(false);
-		res_make_by_order = make_byService.getMake_byListInmongoSchemaOrderscustomer(client_condition, order_condition, client_refilter, order_refilter);
-		if(client_refilter.booleanValue()) {
-			if(all == null)
-				all = new CustomerServiceImpl().getCustomerList(client_condition);
-			joinCondition = null;
-			joinCondition = res_make_by_order.col("client.id").equalTo(all.col("id"));
-			if(joinCondition == null)
-				res_Order = res_make_by_order.join(all).select("order.*").as(Encoders.bean(Order.class));
-			else
-				res_Order = res_make_by_order.join(all, joinCondition).select("order.*").as(Encoders.bean(Order.class));
-		
-		} else
-			res_Order = res_make_by_order.map((MapFunction<Make_by,Order>) r -> r.getOrder(), Encoders.bean(Order.class));
-		res_Order = res_Order.dropDuplicates(new String[] {"id"});
-		datasetsPOJO.add(res_Order);
 		
 		
 		//Join datasets or return 
@@ -797,6 +780,72 @@ public class OrderServiceImpl extends OrderService {
 		if(res == null)
 			return null;
 	
+		List<Dataset<Order>> lonelyOrderList = new ArrayList<Dataset<Order>>();
+		lonelyOrderList.add(getOrderListInOrdersFromMyMongoDB(order_condition, new MutableBoolean(false)));
+		Dataset<Order> lonelyOrder = fullOuterJoinsOrder(lonelyOrderList);
+		if(lonelyOrder != null) {
+			res = fullLeftOuterJoinsOrder(Arrays.asList(res, lonelyOrder));
+		}
+		if(order_refilter.booleanValue())
+			res = res.filter((FilterFunction<Order>) r -> order_condition == null || order_condition.evaluate(r));
+		
+	
+		return res;
+		}
+	public Dataset<Order> getOrderListInShip_via(conditions.Condition<conditions.ShipperAttribute> shipper_condition,conditions.Condition<conditions.OrderAttribute> order_condition)		{
+		MutableBoolean order_refilter = new MutableBoolean(false);
+		List<Dataset<Order>> datasetsPOJO = new ArrayList<Dataset<Order>>();
+		Dataset<Shipper> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean shipper_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		
+		
+		Dataset<Ship_via> res_ship_via_order;
+		Dataset<Order> res_Order;
+		
+		
+		//Join datasets or return 
+		Dataset<Order> res = fullOuterJoinsOrder(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		List<Dataset<Order>> lonelyOrderList = new ArrayList<Dataset<Order>>();
+		lonelyOrderList.add(getOrderListInOrdersFromMyMongoDB(order_condition, new MutableBoolean(false)));
+		Dataset<Order> lonelyOrder = fullOuterJoinsOrder(lonelyOrderList);
+		if(lonelyOrder != null) {
+			res = fullLeftOuterJoinsOrder(Arrays.asList(res, lonelyOrder));
+		}
+		if(order_refilter.booleanValue())
+			res = res.filter((FilterFunction<Order>) r -> order_condition == null || order_condition.evaluate(r));
+		
+	
+		return res;
+		}
+	public Dataset<Order> getOrderListInHandle(conditions.Condition<conditions.EmployeeAttribute> employee_condition,conditions.Condition<conditions.OrderAttribute> order_condition)		{
+		MutableBoolean order_refilter = new MutableBoolean(false);
+		List<Dataset<Order>> datasetsPOJO = new ArrayList<Dataset<Order>>();
+		Dataset<Employee> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean employee_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		
+		
+		Dataset<Handle> res_handle_order;
+		Dataset<Order> res_Order;
+		
+		
+		//Join datasets or return 
+		Dataset<Order> res = fullOuterJoinsOrder(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		List<Dataset<Order>> lonelyOrderList = new ArrayList<Dataset<Order>>();
+		lonelyOrderList.add(getOrderListInOrdersFromMyMongoDB(order_condition, new MutableBoolean(false)));
+		Dataset<Order> lonelyOrder = fullOuterJoinsOrder(lonelyOrderList);
+		if(lonelyOrder != null) {
+			res = fullLeftOuterJoinsOrder(Arrays.asList(res, lonelyOrder));
+		}
 		if(order_refilter.booleanValue())
 			res = res.filter((FilterFunction<Order>) r -> order_condition == null || order_condition.evaluate(r));
 		
@@ -804,19 +853,67 @@ public class OrderServiceImpl extends OrderService {
 		return res;
 		}
 	
+	public boolean insertOrder(
+		Order order,
+		Customer	clientMake_by,
+		Shipper	shipperShip_via,
+		Employee	employeeHandle){
+			boolean inserted = false;
+			// Insert in standalone structures
+			inserted = insertOrderInOrdersFromMyMongoDB(order)|| inserted ;
+			// Insert in structures containing double embedded role
+			// Insert in descending structures
+			// Insert in ascending structures 
+			// Insert in ref structures 
+			// Insert in ref structures mapped to opposite role of mandatory role  
+			return inserted;
+		}
 	
-	public boolean insertOrder(Order order){
-		// Insert into all mapped standalone AbstractPhysicalStructure 
-		boolean inserted = false;
-		return inserted;
-	}
+	public boolean insertOrderInOrdersFromMyMongoDB(Order order)	{
+		String idvalue="";
+		idvalue+=order.getId();
+		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
+		if(!entityExists){
+		Bson filter = new Document();
+		Bson updateOp;
+		Document docOrders_1 = new Document();
+		docOrders_1.append("Freight",order.getFreight());
+		docOrders_1.append("OrderDate",order.getOrderDate());
+		docOrders_1.append("RequiredDate",order.getRequiredDate());
+		docOrders_1.append("ShipAddress",order.getShipAddress());
+		docOrders_1.append("OrderID",order.getId());
+		docOrders_1.append("ShipCity",order.getShipCity());
+		docOrders_1.append("ShipCountry",order.getShipCountry());
+		docOrders_1.append("ShipName",order.getShipName());
+		docOrders_1.append("ShipPostalCode",order.getShipPostalCode());
+		docOrders_1.append("ShipRegion",order.getShipRegion());
+		docOrders_1.append("ShippedDate",order.getShippedDate());
+		// Embedded structure customer
+		
+		filter = eq("OrderID",order.getId());
+		updateOp = setOnInsert(docOrders_1);
+		DBConnectionMgr.upsertMany(filter, updateOp, "Orders", "myMongoDB");
+			logger.info("Inserted [Order] entity ID [{}] in [Orders] in database [MyMongoDB]", idvalue);
+		}
+		else
+			logger.warn("[Order] entity ID [{}] already present in [Orders] in database [MyMongoDB]", idvalue);
+		return !entityExists;
+	} 
 	
 	private boolean inUpdateMethod = false;
 	private List<Row> allOrderIdList = null;
 	public void updateOrderList(conditions.Condition<conditions.OrderAttribute> condition, conditions.SetClause<conditions.OrderAttribute> set){
 		inUpdateMethod = true;
 		try {
+			MutableBoolean refilterInOrdersFromMyMongoDB = new MutableBoolean(false);
+			getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(condition, new ArrayList<String>(), new HashSet<String>(), refilterInOrdersFromMyMongoDB);
+			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
+			if(refilterInOrdersFromMyMongoDB.booleanValue())
+				updateOrderListInOrdersFromMyMongoDB(condition, set);
+		
 	
+			if(!refilterInOrdersFromMyMongoDB.booleanValue())
+				updateOrderListInOrdersFromMyMongoDB(condition, set);
 	
 		} finally {
 			inUpdateMethod = false;
@@ -824,6 +921,89 @@ public class OrderServiceImpl extends OrderService {
 	}
 	
 	
+	public void updateOrderListInOrdersFromMyMongoDB(Condition<OrderAttribute> condition, SetClause<OrderAttribute> set) {
+		Pair<List<String>, List<String>> updates = getBSONUpdateQueryInOrdersFromMyMongoDB(set);
+		List<String> sets = updates.getLeft();
+		final List<String> arrayVariableNames = updates.getRight();
+		String setBSON = null;
+		for(int i = 0; i < sets.size(); i++) {
+			if(i == 0)
+				setBSON = sets.get(i);
+			else
+				setBSON += ", " + sets.get(i);
+		}
+		
+		if(setBSON == null)
+			return;
+		
+		Document updateQuery = null;
+		setBSON = "{$set: {" + setBSON + "}}";
+		updateQuery = Document.parse(setBSON);
+		
+		MutableBoolean refilter = new MutableBoolean(false);
+		Set<String> arrayVariablesUsed = new HashSet<String>();
+		Pair<String, List<String>> queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(condition, arrayVariableNames, arrayVariablesUsed, refilter);
+		Document query = null;
+		String bsonQuery = queryAndArrayFilter.getLeft();
+		if(bsonQuery != null) {
+			bsonQuery = "{" + bsonQuery + "}";
+			query = Document.parse(bsonQuery);	
+		}
+		
+		List<Bson> arrayFilterDocs = new ArrayList<Bson>();
+		List<String> arrayFilters = queryAndArrayFilter.getRight();
+		for(String arrayFilter : arrayFilters)
+			arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
+		
+		for(String arrayVariableName : arrayVariableNames)
+			if(!arrayVariablesUsed.contains(arrayVariableName)) {
+				arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
+			}
+		
+		
+		if(!refilter.booleanValue()) {
+			if(arrayFilterDocs.size() == 0) {
+				DBConnectionMgr.update(query, updateQuery, "Orders", "myMongoDB");
+			} else {
+				DBConnectionMgr.upsertMany(query, updateQuery, arrayFilterDocs, "Orders", "myMongoDB");
+			}
+		
+			
+		} else {
+			if(!inUpdateMethod || allOrderIdList == null)
+				allOrderIdList = this.getOrderList(condition).select("id").collectAsList();
+			List<com.mongodb.client.model.UpdateManyModel<Document>> updateQueries = new ArrayList<com.mongodb.client.model.UpdateManyModel<Document>>();
+			for(Row row : allOrderIdList) {
+				Condition<OrderAttribute> conditionId = null;
+				conditionId = Condition.simple(OrderAttribute.id, Operator.EQUALS, row.getAs("id"));
+		
+				arrayVariablesUsed = new HashSet<String>();
+				queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInOrdersFromMyMongoDB(conditionId, arrayVariableNames, arrayVariablesUsed, refilter);
+				query = null;
+				bsonQuery = queryAndArrayFilter.getLeft();
+				if(bsonQuery != null) {
+					bsonQuery = "{" + bsonQuery + "}";
+					query = Document.parse(bsonQuery);	
+				}
+				
+				arrayFilterDocs = new ArrayList<Bson>();
+				arrayFilters = queryAndArrayFilter.getRight();
+				for(String arrayFilter : arrayFilters)
+					arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
+				
+				for(String arrayVariableName : arrayVariableNames)
+					if(!arrayVariablesUsed.contains(arrayVariableName)) {
+						arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
+					}
+				if(arrayFilterDocs.size() == 0)
+					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery));
+				else
+					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery, new com.mongodb.client.model.UpdateOptions().arrayFilters(arrayFilterDocs)));
+			}
+		
+			DBConnectionMgr.bulkUpdatesInMongoDB(updateQueries, "Orders", "myMongoDB");
+		}
+	}
 	
 	
 	
@@ -853,7 +1033,7 @@ public class OrderServiceImpl extends OrderService {
 		updateOrderListInMake_by(null, client_condition, set);
 	}
 	
-	public void updateOrderInMake_byByClient(
+	public void updateOrderListInMake_byByClient(
 		pojo.Customer client,
 		conditions.SetClause<conditions.OrderAttribute> set 
 	){
@@ -861,6 +1041,66 @@ public class OrderServiceImpl extends OrderService {
 		return;	
 	}
 	
+	public void updateOrderListInShip_via(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateOrderListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInShip_via(shipper_condition, null, set);
+	}
+	
+	public void updateOrderListInShip_viaByShipper(
+		pojo.Shipper shipper,
+		conditions.SetClause<conditions.OrderAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateOrderListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInShip_via(null, order_condition, set);
+	}
+	public void updateOrderListInHandle(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateOrderListInHandleByEmployeeCondition(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInHandle(employee_condition, null, set);
+	}
+	
+	public void updateOrderListInHandleByEmployee(
+		pojo.Employee employee,
+		conditions.SetClause<conditions.OrderAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateOrderListInHandleByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInHandle(null, order_condition, set);
+	}
 	
 	
 	public void deleteOrderList(conditions.Condition<conditions.OrderAttribute> condition){
@@ -888,12 +1128,60 @@ public class OrderServiceImpl extends OrderService {
 		deleteOrderListInMake_by(null, client_condition);
 	}
 	
-	public void deleteOrderInMake_byByClient(
+	public void deleteOrderListInMake_byByClient(
 		pojo.Customer client 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
+	public void deleteOrderListInShip_via(	
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition){
+			//TODO
+		}
+	
+	public void deleteOrderListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition
+	){
+		deleteOrderListInShip_via(shipper_condition, null);
+	}
+	
+	public void deleteOrderListInShip_viaByShipper(
+		pojo.Shipper shipper 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteOrderListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteOrderListInShip_via(null, order_condition);
+	}
+	public void deleteOrderListInHandle(	
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition){
+			//TODO
+		}
+	
+	public void deleteOrderListInHandleByEmployeeCondition(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition
+	){
+		deleteOrderListInHandle(employee_condition, null);
+	}
+	
+	public void deleteOrderListInHandleByEmployee(
+		pojo.Employee employee 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteOrderListInHandleByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteOrderListInHandle(null, order_condition);
+	}
 	
 }

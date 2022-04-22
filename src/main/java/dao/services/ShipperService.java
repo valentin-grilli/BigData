@@ -16,17 +16,23 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import conditions.Condition;
 import conditions.Operator;
 import util.Util;
+import conditions.ShipperAttribute;
+import pojo.Ship_via;
+import conditions.OrderAttribute;
+import pojo.Order;
 
 public abstract class ShipperService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ShipperService.class);
+	protected Ship_viaService ship_viaService = new dao.impl.Ship_viaServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		
+		SHIP_VIA_SHIPPER
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
+		defaultLoadingParameters.put(ROLE_NAME.SHIP_VIA_SHIPPER, loading.Loading.LAZY);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -216,9 +222,59 @@ public abstract class ShipperService {
 	
 	
 	
+	public Shipper getShipper(Shipper.ship_via role, Order order) {
+		if(role != null) {
+			if(role.equals(Shipper.ship_via.shipper))
+				return getShipperInShip_viaByOrder(order);
+		}
+		return null;
+	}
+	
+	public Dataset<Shipper> getShipperList(Shipper.ship_via role, Condition<OrderAttribute> condition) {
+		if(role != null) {
+			if(role.equals(Shipper.ship_via.shipper))
+				return getShipperListInShip_viaByOrderCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<Shipper> getShipperList(Shipper.ship_via role, Condition<ShipperAttribute> condition1, Condition<OrderAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(Shipper.ship_via.shipper))
+				return getShipperListInShip_via(condition1, condition2);
+		}
+		return null;
+	}
 	
 	
-	public abstract boolean insertShipper(Shipper shipper);
+	
+	
+	
+	
+	
+	public abstract Dataset<Shipper> getShipperListInShip_via(conditions.Condition<conditions.ShipperAttribute> shipper_condition,conditions.Condition<conditions.OrderAttribute> order_condition);
+	
+	public Dataset<Shipper> getShipperListInShip_viaByShipperCondition(conditions.Condition<conditions.ShipperAttribute> shipper_condition){
+		return getShipperListInShip_via(shipper_condition, null);
+	}
+	public Dataset<Shipper> getShipperListInShip_viaByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
+		return getShipperListInShip_via(null, order_condition);
+	}
+	
+	public Shipper getShipperInShip_viaByOrder(pojo.Order order){
+		if(order == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(OrderAttribute.id,Operator.EQUALS, order.getId());
+		Dataset<Shipper> res = getShipperListInShip_viaByOrderCondition(c);
+		return !res.isEmpty()?res.first():null;
+	}
+	
+	
+	public abstract boolean insertShipper(
+		Shipper shipper,
+		 List<Order> orderShip_via);
 	
 	public abstract boolean insertShipperInShippersFromRelData(Shipper shipper); 
 	private boolean inUpdateMethod = false;
@@ -229,6 +285,34 @@ public abstract class ShipperService {
 		//TODO using the id
 		return;
 	}
+	public abstract void updateShipperListInShip_via(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.ShipperAttribute> set
+	);
+	
+	public void updateShipperListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.SetClause<conditions.ShipperAttribute> set
+	){
+		updateShipperListInShip_via(shipper_condition, null, set);
+	}
+	public void updateShipperListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.ShipperAttribute> set
+	){
+		updateShipperListInShip_via(null, order_condition, set);
+	}
+	
+	public void updateShipperInShip_viaByOrder(
+		pojo.Order order,
+		conditions.SetClause<conditions.ShipperAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 	
 	public abstract void deleteShipperList(conditions.Condition<conditions.ShipperAttribute> condition);
@@ -237,5 +321,27 @@ public abstract class ShipperService {
 		//TODO using the id
 		return;
 	}
+	public abstract void deleteShipperListInShip_via(	
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition);
+	
+	public void deleteShipperListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition
+	){
+		deleteShipperListInShip_via(shipper_condition, null);
+	}
+	public void deleteShipperListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteShipperListInShip_via(null, order_condition);
+	}
+	
+	public void deleteShipperInShip_viaByOrder(
+		pojo.Order order 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 }

@@ -21,7 +21,7 @@ public class Customer extends LoggingPojo {
 	public enum make_by {
 		client
 	}
-	private Order order;
+	private List<Order> orderList;
 
 	// Empty constructor
 	public Customer() {}
@@ -59,7 +59,7 @@ public class Customer extends LoggingPojo {
 		boolean eqSimpleAttr = Objects.equals(id,Customer.id) && Objects.equals(city,Customer.city) && Objects.equals(companyName,Customer.companyName) && Objects.equals(contactName,Customer.contactName) && Objects.equals(contactTitle,Customer.contactTitle) && Objects.equals(country,Customer.country) && Objects.equals(fax,Customer.fax) && Objects.equals(phone,Customer.phone) && Objects.equals(postalCode,Customer.postalCode) && Objects.equals(region,Customer.region) && Objects.equals(address,Customer.address);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
-	Objects.equals(order, Customer.order) &&
+	Objects.equals(orderList, Customer.orderList) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -159,11 +159,11 @@ public class Customer extends LoggingPojo {
 
 	
 
-	public Order _getOrder() {
-		return order;
+	public List<Order> _getOrderList() {
+		return orderList;
 	}
 
-	public void _setOrder(Order order) {
-		this.order = order;
+	public void _setOrderList(List<Order> orderList) {
+		this.orderList = orderList;
 	}
 }

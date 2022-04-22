@@ -267,14 +267,50 @@ public class ShipperServiceImpl extends ShipperService {
 	
 	
 	
+	public Dataset<Shipper> getShipperListInShip_via(conditions.Condition<conditions.ShipperAttribute> shipper_condition,conditions.Condition<conditions.OrderAttribute> order_condition)		{
+		MutableBoolean shipper_refilter = new MutableBoolean(false);
+		List<Dataset<Shipper>> datasetsPOJO = new ArrayList<Dataset<Shipper>>();
+		Dataset<Order> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean order_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		
+		
+		Dataset<Ship_via> res_ship_via_shipper;
+		Dataset<Shipper> res_Shipper;
+		
+		
+		//Join datasets or return 
+		Dataset<Shipper> res = fullOuterJoinsShipper(datasetsPOJO);
+		if(res == null)
+			return null;
 	
+		List<Dataset<Shipper>> lonelyShipperList = new ArrayList<Dataset<Shipper>>();
+		lonelyShipperList.add(getShipperListInShippersFromRelData(shipper_condition, new MutableBoolean(false)));
+		Dataset<Shipper> lonelyShipper = fullOuterJoinsShipper(lonelyShipperList);
+		if(lonelyShipper != null) {
+			res = fullLeftOuterJoinsShipper(Arrays.asList(res, lonelyShipper));
+		}
+		if(shipper_refilter.booleanValue())
+			res = res.filter((FilterFunction<Shipper>) r -> shipper_condition == null || shipper_condition.evaluate(r));
+		
 	
-	public boolean insertShipper(Shipper shipper){
-		// Insert into all mapped standalone AbstractPhysicalStructure 
-		boolean inserted = false;
-			inserted = insertShipperInShippersFromRelData(shipper) || inserted ;
-		return inserted;
-	}
+		return res;
+		}
+	
+	public boolean insertShipper(
+		Shipper shipper,
+		 List<Order> orderShip_via){
+		 	boolean inserted = false;
+		 	// Insert in standalone structures
+		 	inserted = insertShipperInShippersFromRelData(shipper)|| inserted ;
+		 	// Insert in structures containing double embedded role
+		 	// Insert in descending structures
+		 	// Insert in ascending structures 
+		 	// Insert in ref structures 
+		 	// Insert in ref structures mapped to opposite role of mandatory role  
+		 	return inserted;
+		 }
 	
 	public boolean insertShipperInShippersFromRelData(Shipper shipper)	{
 		String idvalue="";
@@ -376,6 +412,36 @@ public class ShipperServiceImpl extends ShipperService {
 		//TODO using the id
 		return;
 	}
+	public void updateShipperListInShip_via(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.ShipperAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateShipperListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.SetClause<conditions.ShipperAttribute> set
+	){
+		updateShipperListInShip_via(shipper_condition, null, set);
+	}
+	public void updateShipperListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.ShipperAttribute> set
+	){
+		updateShipperListInShip_via(null, order_condition, set);
+	}
+	
+	public void updateShipperInShip_viaByOrder(
+		pojo.Order order,
+		conditions.SetClause<conditions.ShipperAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 	
 	public void deleteShipperList(conditions.Condition<conditions.ShipperAttribute> condition){
@@ -386,5 +452,29 @@ public class ShipperServiceImpl extends ShipperService {
 		//TODO using the id
 		return;
 	}
+	public void deleteShipperListInShip_via(	
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition){
+			//TODO
+		}
+	
+	public void deleteShipperListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition
+	){
+		deleteShipperListInShip_via(shipper_condition, null);
+	}
+	public void deleteShipperListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteShipperListInShip_via(null, order_condition);
+	}
+	
+	public void deleteShipperInShip_viaByOrder(
+		pojo.Order order 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 }

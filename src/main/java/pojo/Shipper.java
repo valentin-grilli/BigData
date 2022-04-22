@@ -10,6 +10,10 @@ public class Shipper extends LoggingPojo {
 	private String companyName;
 	private String phone;
 
+	public enum ship_via {
+		shipper
+	}
+	private List<Order> orderList;
 
 	// Empty constructor
 	public Shipper() {}
@@ -39,6 +43,7 @@ public class Shipper extends LoggingPojo {
 		boolean eqSimpleAttr = Objects.equals(id,Shipper.id) && Objects.equals(companyName,Shipper.companyName) && Objects.equals(phone,Shipper.phone);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
+	Objects.equals(orderList, Shipper.orderList) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -74,4 +79,11 @@ public class Shipper extends LoggingPojo {
 
 	
 
+	public List<Order> _getOrderList() {
+		return orderList;
+	}
+
+	public void _setOrderList(List<Order> orderList) {
+		this.orderList = orderList;
+	}
 }

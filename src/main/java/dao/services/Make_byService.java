@@ -22,8 +22,6 @@ public abstract class Make_byService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Make_byService.class);
 	
 	
-	// method accessing the embedded object customer mapped to role client
-	public abstract Dataset<Make_by> getMake_byListInmongoSchemaOrderscustomer(Condition<CustomerAttribute> client_condition, Condition<OrderAttribute> order_condition, MutableBoolean client_refilter, MutableBoolean order_refilter);
 	
 	public static Dataset<Make_by> fullLeftOuterJoinBetweenMake_byAndOrder(Dataset<Make_by> d1, Dataset<Order> d2) {
 		Dataset<Row> d2_ = d2
@@ -685,11 +683,15 @@ public abstract class Make_byService {
 		return getMake_byList(order_condition, null);
 	}
 	
-	public Dataset<Make_by> getMake_byListByOrder(Order order) {
+	public Make_by getMake_byByOrder(Order order) {
 		Condition<OrderAttribute> cond = null;
 		cond = Condition.simple(OrderAttribute.id, Operator.EQUALS, order.getId());
 		Dataset<Make_by> res = getMake_byListByOrderCondition(cond);
-	return res;
+		List<Make_by> list = res.collectAsList();
+		if(list.size() > 0)
+			return list.get(0);
+		else
+			return null;
 	}
 	public Dataset<Make_by> getMake_byListByClientCondition(
 		Condition<CustomerAttribute> client_condition
@@ -697,15 +699,11 @@ public abstract class Make_byService {
 		return getMake_byList(null, client_condition);
 	}
 	
-	public Make_by getMake_byByClient(Customer client) {
+	public Dataset<Make_by> getMake_byListByClient(Customer client) {
 		Condition<CustomerAttribute> cond = null;
 		cond = Condition.simple(CustomerAttribute.id, Operator.EQUALS, client.getId());
 		Dataset<Make_by> res = getMake_byListByClientCondition(cond);
-		List<Make_by> list = res.collectAsList();
-		if(list.size() > 0)
-			return list.get(0);
-		else
-			return null;
+	return res;
 	}
 	
 	
@@ -720,7 +718,7 @@ public abstract class Make_byService {
 		deleteMake_byList(order_condition, null);
 	}
 	
-	public void deleteMake_byListByOrder(pojo.Order order) {
+	public void deleteMake_byByOrder(pojo.Order order) {
 		// TODO using id for selecting
 		return;
 	}
@@ -730,7 +728,7 @@ public abstract class Make_byService {
 		deleteMake_byList(null, client_condition);
 	}
 	
-	public void deleteMake_byByClient(pojo.Customer client) {
+	public void deleteMake_byListByClient(pojo.Customer client) {
 		// TODO using id for selecting
 		return;
 	}

@@ -32,7 +32,7 @@ public abstract class CustomerService {
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
-		defaultLoadingParameters.put(ROLE_NAME.MAKE_BY_CLIENT, loading.Loading.EAGER);
+		defaultLoadingParameters.put(ROLE_NAME.MAKE_BY_CLIENT, loading.Loading.LAZY);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -84,10 +84,10 @@ public abstract class CustomerService {
 		MutableBoolean refilterFlag = new MutableBoolean(false);
 		List<Dataset<Customer>> datasets = new ArrayList<Dataset<Customer>>();
 		Dataset<Customer> d = null;
-		d = getCustomerListInOrdersFromMyMongoDB(condition, refilterFlag);
+		d = getCustomerListInCustomersFromMyMongoDB(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
-		d = getCustomerListInCustomersFromMyMongoDB(condition, refilterFlag);
+		d = getCustomerListInOrdersFromMyMongoDB(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
 		
@@ -108,13 +108,13 @@ public abstract class CustomerService {
 	
 	
 	
-	public abstract Dataset<Customer> getCustomerListInOrdersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag);
-	
-	
-	
-	
-	
 	public abstract Dataset<Customer> getCustomerListInCustomersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
+	
+	
+	public abstract Dataset<Customer> getCustomerListInOrdersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag);
 	
 	
 	public Customer getCustomerById(String id){
@@ -387,10 +387,10 @@ public abstract class CustomerService {
 	}
 	
 	
-	public Dataset<Customer> getCustomerList(Customer.make_by role, Order order) {
+	public Customer getCustomer(Customer.make_by role, Order order) {
 		if(role != null) {
 			if(role.equals(Customer.make_by.client))
-				return getClientListInMake_byByOrder(order);
+				return getClientInMake_byByOrder(order);
 		}
 		return null;
 	}
@@ -416,31 +416,36 @@ public abstract class CustomerService {
 	
 	
 	
+	
+	
+	
+	
+	
 	public abstract Dataset<Customer> getClientListInMake_by(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.CustomerAttribute> client_condition);
 	
 	public Dataset<Customer> getClientListInMake_byByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
 		return getClientListInMake_by(order_condition, null);
 	}
 	
-	public Dataset<Customer> getClientListInMake_byByOrder(pojo.Order order){
+	public Customer getClientInMake_byByOrder(pojo.Order order){
 		if(order == null)
 			return null;
 	
 		Condition c;
 		c=Condition.simple(OrderAttribute.id,Operator.EQUALS, order.getId());
 		Dataset<Customer> res = getClientListInMake_byByOrderCondition(c);
-		return res;
+		return !res.isEmpty()?res.first():null;
 	}
 	
 	public Dataset<Customer> getClientListInMake_byByClientCondition(conditions.Condition<conditions.CustomerAttribute> client_condition){
 		return getClientListInMake_by(null, client_condition);
 	}
 	
-	public abstract boolean insertCustomer(
-		Customer customer,
-		Order	orderMake_by);
+	
+	public abstract boolean insertCustomer(Customer customer);
 	
 	public abstract boolean insertCustomerInCustomersFromMyMongoDB(Customer customer); 
+	public abstract boolean insertCustomerInOrdersFromMyMongoDB(Customer customer); 
 	private boolean inUpdateMethod = false;
 	private List<Row> allCustomerIdList = null;
 	public abstract void updateCustomerList(conditions.Condition<conditions.CustomerAttribute> condition, conditions.SetClause<conditions.CustomerAttribute> set);
@@ -463,7 +468,7 @@ public abstract class CustomerService {
 		updateClientListInMake_by(order_condition, null, set);
 	}
 	
-	public void updateClientListInMake_byByOrder(
+	public void updateClientInMake_byByOrder(
 		pojo.Order order,
 		conditions.SetClause<conditions.CustomerAttribute> set 
 	){
@@ -495,7 +500,7 @@ public abstract class CustomerService {
 		deleteClientListInMake_by(order_condition, null);
 	}
 	
-	public void deleteClientListInMake_byByOrder(
+	public void deleteClientInMake_byByOrder(
 		pojo.Order order 
 	){
 		//TODO get id in condition

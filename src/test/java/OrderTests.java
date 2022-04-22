@@ -2,10 +2,8 @@ import dao.impl.*;
 import dao.services.*;
 import org.junit.jupiter.api.Test;
 
-import pojo.Customer;
+
 import pojo.Order;
-import pojo.ProductInfo;
-import pojo.Shipper;
 
 
 public class OrderTests {

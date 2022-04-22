@@ -20,19 +20,31 @@ import conditions.OrderAttribute;
 import pojo.Make_by;
 import conditions.CustomerAttribute;
 import pojo.Customer;
+import conditions.OrderAttribute;
+import pojo.Ship_via;
+import conditions.ShipperAttribute;
+import pojo.Shipper;
+import conditions.OrderAttribute;
+import pojo.Handle;
+import conditions.EmployeeAttribute;
+import pojo.Employee;
 
 public abstract class OrderService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(OrderService.class);
 	protected Make_byService make_byService = new dao.impl.Make_byServiceImpl();
+	protected Ship_viaService ship_viaService = new dao.impl.Ship_viaServiceImpl();
+	protected HandleService handleService = new dao.impl.HandleServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		MAKE_BY_ORDER
+		MAKE_BY_ORDER, SHIP_VIA_ORDER, HANDLE_ORDER
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
-		defaultLoadingParameters.put(ROLE_NAME.MAKE_BY_ORDER, loading.Loading.LAZY);
+		defaultLoadingParameters.put(ROLE_NAME.MAKE_BY_ORDER, loading.Loading.EAGER);
+		defaultLoadingParameters.put(ROLE_NAME.SHIP_VIA_ORDER, loading.Loading.EAGER);
+		defaultLoadingParameters.put(ROLE_NAME.HANDLE_ORDER, loading.Loading.EAGER);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -378,10 +390,10 @@ public abstract class OrderService {
 	}
 	
 	
-	public Order getOrder(Order.make_by role, Customer customer) {
+	public Dataset<Order> getOrderList(Order.make_by role, Customer customer) {
 		if(role != null) {
 			if(role.equals(Order.make_by.order))
-				return getOrderInMake_byByClient(customer);
+				return getOrderListInMake_byByClient(customer);
 		}
 		return null;
 	}
@@ -407,6 +419,61 @@ public abstract class OrderService {
 	
 	
 	
+	public Dataset<Order> getOrderList(Order.ship_via role, Shipper shipper) {
+		if(role != null) {
+			if(role.equals(Order.ship_via.order))
+				return getOrderListInShip_viaByShipper(shipper);
+		}
+		return null;
+	}
+	
+	public Dataset<Order> getOrderList(Order.ship_via role, Condition<ShipperAttribute> condition) {
+		if(role != null) {
+			if(role.equals(Order.ship_via.order))
+				return getOrderListInShip_viaByShipperCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<Order> getOrderList(Order.ship_via role, Condition<ShipperAttribute> condition1, Condition<OrderAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(Order.ship_via.order))
+				return getOrderListInShip_via(condition1, condition2);
+		}
+		return null;
+	}
+	
+	
+	
+	public Dataset<Order> getOrderList(Order.handle role, Employee employee) {
+		if(role != null) {
+			if(role.equals(Order.handle.order))
+				return getOrderListInHandleByEmployee(employee);
+		}
+		return null;
+	}
+	
+	public Dataset<Order> getOrderList(Order.handle role, Condition<EmployeeAttribute> condition) {
+		if(role != null) {
+			if(role.equals(Order.handle.order))
+				return getOrderListInHandleByEmployeeCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<Order> getOrderList(Order.handle role, Condition<EmployeeAttribute> condition1, Condition<OrderAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(Order.handle.order))
+				return getOrderListInHandle(condition1, condition2);
+		}
+		return null;
+	}
+	
+	
+	
+	
+	
+	
 	public abstract Dataset<Order> getOrderListInMake_by(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.CustomerAttribute> client_condition);
 	
 	public Dataset<Order> getOrderListInMake_byByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
@@ -416,20 +483,62 @@ public abstract class OrderService {
 		return getOrderListInMake_by(null, client_condition);
 	}
 	
-	public Order getOrderInMake_byByClient(pojo.Customer client){
+	public Dataset<Order> getOrderListInMake_byByClient(pojo.Customer client){
 		if(client == null)
 			return null;
 	
 		Condition c;
 		c=Condition.simple(CustomerAttribute.id,Operator.EQUALS, client.getId());
 		Dataset<Order> res = getOrderListInMake_byByClientCondition(c);
-		return !res.isEmpty()?res.first():null;
+		return res;
 	}
 	
+	public abstract Dataset<Order> getOrderListInShip_via(conditions.Condition<conditions.ShipperAttribute> shipper_condition,conditions.Condition<conditions.OrderAttribute> order_condition);
 	
+	public Dataset<Order> getOrderListInShip_viaByShipperCondition(conditions.Condition<conditions.ShipperAttribute> shipper_condition){
+		return getOrderListInShip_via(shipper_condition, null);
+	}
 	
-	public abstract boolean insertOrder(Order order);
+	public Dataset<Order> getOrderListInShip_viaByShipper(pojo.Shipper shipper){
+		if(shipper == null)
+			return null;
 	
+		Condition c;
+		c=Condition.simple(ShipperAttribute.id,Operator.EQUALS, shipper.getId());
+		Dataset<Order> res = getOrderListInShip_viaByShipperCondition(c);
+		return res;
+	}
+	
+	public Dataset<Order> getOrderListInShip_viaByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
+		return getOrderListInShip_via(null, order_condition);
+	}
+	public abstract Dataset<Order> getOrderListInHandle(conditions.Condition<conditions.EmployeeAttribute> employee_condition,conditions.Condition<conditions.OrderAttribute> order_condition);
+	
+	public Dataset<Order> getOrderListInHandleByEmployeeCondition(conditions.Condition<conditions.EmployeeAttribute> employee_condition){
+		return getOrderListInHandle(employee_condition, null);
+	}
+	
+	public Dataset<Order> getOrderListInHandleByEmployee(pojo.Employee employee){
+		if(employee == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(EmployeeAttribute.id,Operator.EQUALS, employee.getId());
+		Dataset<Order> res = getOrderListInHandleByEmployeeCondition(c);
+		return res;
+	}
+	
+	public Dataset<Order> getOrderListInHandleByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
+		return getOrderListInHandle(null, order_condition);
+	}
+	
+	public abstract boolean insertOrder(
+		Order order,
+		Customer	clientMake_by,
+		Shipper	shipperShip_via,
+		Employee	employeeHandle);
+	
+	public abstract boolean insertOrderInOrdersFromMyMongoDB(Order order); 
 	private boolean inUpdateMethod = false;
 	private List<Row> allOrderIdList = null;
 	public abstract void updateOrderList(conditions.Condition<conditions.OrderAttribute> condition, conditions.SetClause<conditions.OrderAttribute> set);
@@ -458,7 +567,7 @@ public abstract class OrderService {
 		updateOrderListInMake_by(null, client_condition, set);
 	}
 	
-	public void updateOrderInMake_byByClient(
+	public void updateOrderListInMake_byByClient(
 		pojo.Customer client,
 		conditions.SetClause<conditions.OrderAttribute> set 
 	){
@@ -466,6 +575,62 @@ public abstract class OrderService {
 		return;	
 	}
 	
+	public abstract void updateOrderListInShip_via(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.OrderAttribute> set
+	);
+	
+	public void updateOrderListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInShip_via(shipper_condition, null, set);
+	}
+	
+	public void updateOrderListInShip_viaByShipper(
+		pojo.Shipper shipper,
+		conditions.SetClause<conditions.OrderAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateOrderListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInShip_via(null, order_condition, set);
+	}
+	public abstract void updateOrderListInHandle(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		
+		conditions.SetClause<conditions.OrderAttribute> set
+	);
+	
+	public void updateOrderListInHandleByEmployeeCondition(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInHandle(employee_condition, null, set);
+	}
+	
+	public void updateOrderListInHandleByEmployee(
+		pojo.Employee employee,
+		conditions.SetClause<conditions.OrderAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateOrderListInHandleByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInHandle(null, order_condition, set);
+	}
 	
 	
 	public abstract void deleteOrderList(conditions.Condition<conditions.OrderAttribute> condition);
@@ -489,12 +654,56 @@ public abstract class OrderService {
 		deleteOrderListInMake_by(null, client_condition);
 	}
 	
-	public void deleteOrderInMake_byByClient(
+	public void deleteOrderListInMake_byByClient(
 		pojo.Customer client 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
+	public abstract void deleteOrderListInShip_via(	
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition);
+	
+	public void deleteOrderListInShip_viaByShipperCondition(
+		conditions.Condition<conditions.ShipperAttribute> shipper_condition
+	){
+		deleteOrderListInShip_via(shipper_condition, null);
+	}
+	
+	public void deleteOrderListInShip_viaByShipper(
+		pojo.Shipper shipper 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteOrderListInShip_viaByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteOrderListInShip_via(null, order_condition);
+	}
+	public abstract void deleteOrderListInHandle(	
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition,	
+		conditions.Condition<conditions.OrderAttribute> order_condition);
+	
+	public void deleteOrderListInHandleByEmployeeCondition(
+		conditions.Condition<conditions.EmployeeAttribute> employee_condition
+	){
+		deleteOrderListInHandle(employee_condition, null);
+	}
+	
+	public void deleteOrderListInHandleByEmployee(
+		pojo.Employee employee 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteOrderListInHandleByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteOrderListInHandle(null, order_condition);
+	}
 	
 }
