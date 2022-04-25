@@ -87,9 +87,6 @@ public abstract class CustomerService {
 		d = getCustomerListInCustomersFromMyMongoDB(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
-		d = getCustomerListInOrdersFromMyMongoDB(condition, refilterFlag);
-		if(d != null)
-			datasets.add(d);
 		
 		if(datasets.size() == 0)
 			return null;
@@ -109,12 +106,6 @@ public abstract class CustomerService {
 	
 	
 	public abstract Dataset<Customer> getCustomerListInCustomersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag);
-	
-	
-	
-	
-	
-	public abstract Dataset<Customer> getCustomerListInOrdersFromMyMongoDB(conditions.Condition<conditions.CustomerAttribute> condition, MutableBoolean refilterFlag);
 	
 	
 	public Customer getCustomerById(String id){
@@ -421,6 +412,7 @@ public abstract class CustomerService {
 	
 	
 	
+	
 	public abstract Dataset<Customer> getClientListInMake_by(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.CustomerAttribute> client_condition);
 	
 	public Dataset<Customer> getClientListInMake_byByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
@@ -445,7 +437,6 @@ public abstract class CustomerService {
 	public abstract boolean insertCustomer(Customer customer);
 	
 	public abstract boolean insertCustomerInCustomersFromMyMongoDB(Customer customer); 
-	public abstract boolean insertCustomerInOrdersFromMyMongoDB(Customer customer); 
 	private boolean inUpdateMethod = false;
 	private List<Row> allCustomerIdList = null;
 	public abstract void updateCustomerList(conditions.Condition<conditions.CustomerAttribute> condition, conditions.SetClause<conditions.CustomerAttribute> set);

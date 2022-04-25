@@ -818,6 +818,37 @@ public class SupplierServiceImpl extends SupplierService {
 		MutableBoolean product_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
 		
+		product_refilter = new MutableBoolean(false);
+		// For role 'product' in reference 'supplierR'  B->A Scenario
+		Dataset<ProductTDO> productTDOsupplierRproduct = insertService.getProductTDOListProductInSupplierRInProductsInfoFromRelSchema(product_condition, product_refilter);
+		Dataset<SupplierTDO> supplierTDOsupplierRsupplier = insertService.getSupplierTDOListSupplierInSupplierRInProductsInfoFromRelSchema(supplier_condition, supplier_refilter);
+		if(product_refilter.booleanValue()) {
+			if(all == null)
+				all = new ProductServiceImpl().getProductList(product_condition);
+			joinCondition = null;
+			joinCondition = productTDOsupplierRproduct.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				productTDOsupplierRproduct = productTDOsupplierRproduct.as("A").join(all).select("A.*").as(Encoders.bean(ProductTDO.class));
+			else
+				productTDOsupplierRproduct = productTDOsupplierRproduct.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(ProductTDO.class));
+		}
+		Dataset<Row> res_supplierR = 
+			supplierTDOsupplierRsupplier.join(productTDOsupplierRproduct
+				.withColumnRenamed("id", "Product_id")
+				.withColumnRenamed("name", "Product_name")
+				.withColumnRenamed("supplierRef", "Product_supplierRef")
+				.withColumnRenamed("categoryRef", "Product_categoryRef")
+				.withColumnRenamed("quantityPerUnit", "Product_quantityPerUnit")
+				.withColumnRenamed("unitPrice", "Product_unitPrice")
+				.withColumnRenamed("reorderLevel", "Product_reorderLevel")
+				.withColumnRenamed("discontinued", "Product_discontinued")
+				.withColumnRenamed("unitsInStock", "Product_unitsInStock")
+				.withColumnRenamed("unitsOnOrder", "Product_unitsOnOrder")
+				.withColumnRenamed("logEvents", "Product_logEvents"),
+				supplierTDOsupplierRsupplier.col("relSchema_ProductsInfo_supplierR_SupplierID").equalTo(productTDOsupplierRproduct.col("relSchema_ProductsInfo_supplierR_SupplierRef")));
+		Dataset<Supplier> res_Supplier_supplierR = res_supplierR.select( "id", "address", "city", "companyName", "contactName", "contactTitle", "country", "fax", "homePage", "phone", "postalCode", "region", "logEvents").as(Encoders.bean(Supplier.class));
+		res_Supplier_supplierR = res_Supplier_supplierR.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Supplier_supplierR);
 		
 		Dataset<Insert> res_insert_supplier;
 		Dataset<Supplier> res_Supplier;
@@ -828,12 +859,6 @@ public class SupplierServiceImpl extends SupplierService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Supplier>> lonelySupplierList = new ArrayList<Dataset<Supplier>>();
-		lonelySupplierList.add(getSupplierListInSuppliersFromMyMongoDB(supplier_condition, new MutableBoolean(false)));
-		Dataset<Supplier> lonelySupplier = fullOuterJoinsSupplier(lonelySupplierList);
-		if(lonelySupplier != null) {
-			res = fullLeftOuterJoinsSupplier(Arrays.asList(res, lonelySupplier));
-		}
 		if(supplier_refilter.booleanValue())
 			res = res.filter((FilterFunction<Supplier>) r -> supplier_condition == null || supplier_condition.evaluate(r));
 		
@@ -841,19 +866,13 @@ public class SupplierServiceImpl extends SupplierService {
 		return res;
 		}
 	
-	public boolean insertSupplier(
-		Supplier supplier,
-		 List<Product> productInsert){
-		 	boolean inserted = false;
-		 	// Insert in standalone structures
-		 	inserted = insertSupplierInSuppliersFromMyMongoDB(supplier)|| inserted ;
-		 	// Insert in structures containing double embedded role
-		 	// Insert in descending structures
-		 	// Insert in ascending structures 
-		 	// Insert in ref structures 
-		 	// Insert in ref structures mapped to opposite role of mandatory role  
-		 	return inserted;
-		 }
+	
+	public boolean insertSupplier(Supplier supplier){
+		// Insert into all mapped standalone AbstractPhysicalStructure 
+		boolean inserted = false;
+			inserted = insertSupplierInSuppliersFromMyMongoDB(supplier) || inserted ;
+		return inserted;
+	}
 	
 	public boolean insertSupplierInSuppliersFromMyMongoDB(Supplier supplier)	{
 		String idvalue="";

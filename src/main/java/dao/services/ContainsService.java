@@ -21,6 +21,8 @@ import util.Util;
 public abstract class ContainsService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ContainsService.class);
 	
+	// method accessing the embedded object region mapped to role territory
+	public abstract Dataset<Contains> getContainsListInmongoSchemaEmployeesterritoriesregion(Condition<TerritoryAttribute> territory_condition, Condition<RegionAttribute> region_condition, MutableBoolean territory_refilter, MutableBoolean region_refilter);
 	
 	
 	public static Dataset<Contains> fullLeftOuterJoinBetweenContainsAndTerritory(Dataset<Contains> d1, Dataset<Territory> d2) {

@@ -22,6 +22,14 @@ public abstract class Ship_viaService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Ship_viaService.class);
 	
 	
+	// Left side 'ShipVia' of reference [shipperRef ]
+	public abstract Dataset<OrderTDO> getOrderTDOListOrderInShipperRefInOrdersFromMongoSchema(Condition<OrderAttribute> condition, MutableBoolean refilterFlag);
+	
+	// Right side 'ShipperID' of reference [shipperRef ]
+	public abstract Dataset<ShipperTDO> getShipperTDOListShipperInShipperRefInOrdersFromMongoSchema(Condition<ShipperAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
 	
 	public static Dataset<Ship_via> fullLeftOuterJoinBetweenShip_viaAndShipper(Dataset<Ship_via> d1, Dataset<Shipper> d2) {
 		Dataset<Row> d2_ = d2

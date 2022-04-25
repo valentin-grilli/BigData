@@ -275,6 +275,38 @@ public class ShipperServiceImpl extends ShipperService {
 		MutableBoolean order_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
 		
+		order_refilter = new MutableBoolean(false);
+		// For role 'order' in reference 'shipperRef'  B->A Scenario
+		Dataset<OrderTDO> orderTDOshipperReforder = ship_viaService.getOrderTDOListOrderInShipperRefInOrdersFromMongoSchema(order_condition, order_refilter);
+		Dataset<ShipperTDO> shipperTDOshipperRefshipper = ship_viaService.getShipperTDOListShipperInShipperRefInOrdersFromMongoSchema(shipper_condition, shipper_refilter);
+		if(order_refilter.booleanValue()) {
+			if(all == null)
+				all = new OrderServiceImpl().getOrderList(order_condition);
+			joinCondition = null;
+			joinCondition = orderTDOshipperReforder.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				orderTDOshipperReforder = orderTDOshipperReforder.as("A").join(all).select("A.*").as(Encoders.bean(OrderTDO.class));
+			else
+				orderTDOshipperReforder = orderTDOshipperReforder.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(OrderTDO.class));
+		}
+		Dataset<Row> res_shipperRef = 
+			shipperTDOshipperRefshipper.join(orderTDOshipperReforder
+				.withColumnRenamed("id", "Order_id")
+				.withColumnRenamed("freight", "Order_freight")
+				.withColumnRenamed("orderDate", "Order_orderDate")
+				.withColumnRenamed("requiredDate", "Order_requiredDate")
+				.withColumnRenamed("shipAddress", "Order_shipAddress")
+				.withColumnRenamed("shipCity", "Order_shipCity")
+				.withColumnRenamed("shipCountry", "Order_shipCountry")
+				.withColumnRenamed("shipName", "Order_shipName")
+				.withColumnRenamed("shipPostalCode", "Order_shipPostalCode")
+				.withColumnRenamed("shipRegion", "Order_shipRegion")
+				.withColumnRenamed("shippedDate", "Order_shippedDate")
+				.withColumnRenamed("logEvents", "Order_logEvents"),
+				shipperTDOshipperRefshipper.col("mongoSchema_Orders_shipperRef_ShipperID").equalTo(orderTDOshipperReforder.col("mongoSchema_Orders_shipperRef_ShipVia")));
+		Dataset<Shipper> res_Shipper_shipperRef = res_shipperRef.select( "id", "companyName", "phone", "logEvents").as(Encoders.bean(Shipper.class));
+		res_Shipper_shipperRef = res_Shipper_shipperRef.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Shipper_shipperRef);
 		
 		Dataset<Ship_via> res_ship_via_shipper;
 		Dataset<Shipper> res_Shipper;
@@ -285,12 +317,6 @@ public class ShipperServiceImpl extends ShipperService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Shipper>> lonelyShipperList = new ArrayList<Dataset<Shipper>>();
-		lonelyShipperList.add(getShipperListInShippersFromRelData(shipper_condition, new MutableBoolean(false)));
-		Dataset<Shipper> lonelyShipper = fullOuterJoinsShipper(lonelyShipperList);
-		if(lonelyShipper != null) {
-			res = fullLeftOuterJoinsShipper(Arrays.asList(res, lonelyShipper));
-		}
 		if(shipper_refilter.booleanValue())
 			res = res.filter((FilterFunction<Shipper>) r -> shipper_condition == null || shipper_condition.evaluate(r));
 		
@@ -298,19 +324,13 @@ public class ShipperServiceImpl extends ShipperService {
 		return res;
 		}
 	
-	public boolean insertShipper(
-		Shipper shipper,
-		 List<Order> orderShip_via){
-		 	boolean inserted = false;
-		 	// Insert in standalone structures
-		 	inserted = insertShipperInShippersFromRelData(shipper)|| inserted ;
-		 	// Insert in structures containing double embedded role
-		 	// Insert in descending structures
-		 	// Insert in ascending structures 
-		 	// Insert in ref structures 
-		 	// Insert in ref structures mapped to opposite role of mandatory role  
-		 	return inserted;
-		 }
+	
+	public boolean insertShipper(Shipper shipper){
+		// Insert into all mapped standalone AbstractPhysicalStructure 
+		boolean inserted = false;
+			inserted = insertShipperInShippersFromRelData(shipper) || inserted ;
+		return inserted;
+	}
 	
 	public boolean insertShipperInShippersFromRelData(Shipper shipper)	{
 		String idvalue="";

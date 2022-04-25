@@ -11,6 +11,10 @@ public class Category extends LoggingPojo {
 	private String description;
 	private String picture;
 
+	public enum belongs_to {
+		category
+	}
+	private List<Product> productList;
 
 	// Empty constructor
 	public Category() {}
@@ -41,6 +45,7 @@ public class Category extends LoggingPojo {
 		boolean eqSimpleAttr = Objects.equals(id,Category.id) && Objects.equals(categoryName,Category.categoryName) && Objects.equals(description,Category.description) && Objects.equals(picture,Category.picture);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
+	Objects.equals(productList, Category.productList) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -84,4 +89,11 @@ public class Category extends LoggingPojo {
 
 	
 
+	public List<Product> _getProductList() {
+		return productList;
+	}
+
+	public void _setProductList(List<Product> productList) {
+		this.productList = productList;
+	}
 }

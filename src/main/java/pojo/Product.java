@@ -21,6 +21,11 @@ public class Product extends LoggingPojo {
 		product
 	}
 	private Supplier supplier;
+	private List<Composed_of> composed_ofListAsProduct;
+	public enum belongs_to {
+		product
+	}
+	private Category category;
 
 	// Empty constructor
 	public Product() {}
@@ -58,6 +63,8 @@ public class Product extends LoggingPojo {
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
 	Objects.equals(supplier, Product.supplier) &&
+	Objects.equals(composed_ofListAsProduct,Product.composed_ofListAsProduct) &&
+	Objects.equals(category, Product.category) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -155,5 +162,19 @@ public class Product extends LoggingPojo {
 
 	public void _setSupplier(Supplier supplier) {
 		this.supplier = supplier;
+	}
+	public java.util.List<Composed_of> _getComposed_ofListAsProduct() {
+		return composed_ofListAsProduct;
+	}
+
+	public void _setComposed_ofListAsProduct(java.util.List<Composed_of> composed_ofListAsProduct) {
+		this.composed_ofListAsProduct = composed_ofListAsProduct;
+	}
+	public Category _getCategory() {
+		return category;
+	}
+
+	public void _setCategory(Category category) {
+		this.category = category;
 	}
 }

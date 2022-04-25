@@ -232,6 +232,7 @@ public abstract class RegionService {
 	
 	
 	
+	
 	public abstract Dataset<Region> getRegionListInContains(conditions.Condition<conditions.TerritoryAttribute> territory_condition,conditions.Condition<conditions.RegionAttribute> region_condition);
 	
 	public Dataset<Region> getRegionListInContainsByTerritoryCondition(conditions.Condition<conditions.TerritoryAttribute> territory_condition){
@@ -252,11 +253,9 @@ public abstract class RegionService {
 		return getRegionListInContains(null, region_condition);
 	}
 	
-	public abstract boolean insertRegion(
-		Region region,
-		 List<Territory> territoryContains);
 	
-	public abstract boolean insertRegionInEmployeesFromMyMongoDB(Region region); 
+	public abstract boolean insertRegion(Region region);
+	
 	private boolean inUpdateMethod = false;
 	private List<Row> allRegionIdList = null;
 	public abstract void updateRegionList(conditions.Condition<conditions.RegionAttribute> condition, conditions.SetClause<conditions.RegionAttribute> set);

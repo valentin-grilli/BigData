@@ -20,19 +20,31 @@ import conditions.ProductAttribute;
 import pojo.Insert;
 import conditions.SupplierAttribute;
 import pojo.Supplier;
+import conditions.ProductAttribute;
+import pojo.Composed_of;
+import conditions.OrderAttribute;
+import pojo.Order;
+import conditions.ProductAttribute;
+import pojo.Belongs_to;
+import conditions.CategoryAttribute;
+import pojo.Category;
 
 public abstract class ProductService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ProductService.class);
 	protected InsertService insertService = new dao.impl.InsertServiceImpl();
+	protected Composed_ofService composed_ofService = new dao.impl.Composed_ofServiceImpl();
+	protected Belongs_toService belongs_toService = new dao.impl.Belongs_toServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		INSERT_PRODUCT
+		INSERT_PRODUCT, COMPOSED_OF_PRODUCT, BELONGS_TO_PRODUCT
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
 		defaultLoadingParameters.put(ROLE_NAME.INSERT_PRODUCT, loading.Loading.EAGER);
+		defaultLoadingParameters.put(ROLE_NAME.COMPOSED_OF_PRODUCT, loading.Loading.LAZY);
+		defaultLoadingParameters.put(ROLE_NAME.BELONGS_TO_PRODUCT, loading.Loading.EAGER);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -84,10 +96,10 @@ public abstract class ProductService {
 		MutableBoolean refilterFlag = new MutableBoolean(false);
 		List<Dataset<Product>> datasets = new ArrayList<Dataset<Product>>();
 		Dataset<Product> d = null;
-		d = getProductListInProductsInfoFromRelData(condition, refilterFlag);
+		d = getProductListInStockInfoPairsFromRedisDB(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
-		d = getProductListInStockInfoPairsFromRedisDB(condition, refilterFlag);
+		d = getProductListInProductsInfoFromRelData(condition, refilterFlag);
 		if(d != null)
 			datasets.add(d);
 		
@@ -108,13 +120,13 @@ public abstract class ProductService {
 	
 	
 	
-	public abstract Dataset<Product> getProductListInProductsInfoFromRelData(conditions.Condition<conditions.ProductAttribute> condition, MutableBoolean refilterFlag);
-	
-	
-	
-	
-	
 	public abstract Dataset<Product> getProductListInStockInfoPairsFromRedisDB(conditions.Condition<conditions.ProductAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
+	
+	
+	public abstract Dataset<Product> getProductListInProductsInfoFromRelData(conditions.Condition<conditions.ProductAttribute> condition, MutableBoolean refilterFlag);
 	
 	
 	public Product getProductById(Integer id){
@@ -399,6 +411,32 @@ public abstract class ProductService {
 	
 	
 	
+	public Dataset<Product> getProductList(Product.belongs_to role, Category category) {
+		if(role != null) {
+			if(role.equals(Product.belongs_to.product))
+				return getProductListInBelongs_toByCategory(category);
+		}
+		return null;
+	}
+	
+	public Dataset<Product> getProductList(Product.belongs_to role, Condition<CategoryAttribute> condition) {
+		if(role != null) {
+			if(role.equals(Product.belongs_to.product))
+				return getProductListInBelongs_toByCategoryCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<Product> getProductList(Product.belongs_to role, Condition<ProductAttribute> condition1, Condition<CategoryAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(Product.belongs_to.product))
+				return getProductListInBelongs_to(condition1, condition2);
+		}
+		return null;
+	}
+	
+	
+	
 	
 	
 	public abstract Dataset<Product> getProductListInInsert(conditions.Condition<conditions.SupplierAttribute> supplier_condition,conditions.Condition<conditions.ProductAttribute> product_condition);
@@ -420,13 +458,59 @@ public abstract class ProductService {
 	public Dataset<Product> getProductListInInsertByProductCondition(conditions.Condition<conditions.ProductAttribute> product_condition){
 		return getProductListInInsert(null, product_condition);
 	}
+	public abstract Dataset<Product> getProductListInComposed_of(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.ProductAttribute> product_condition, conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition);
+	
+	public Dataset<Product> getProductListInComposed_ofByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
+		return getProductListInComposed_of(order_condition, null, null);
+	}
+	
+	public Dataset<Product> getProductListInComposed_ofByOrder(pojo.Order order){
+		if(order == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(OrderAttribute.id,Operator.EQUALS, order.getId());
+		Dataset<Product> res = getProductListInComposed_ofByOrderCondition(c);
+		return res;
+	}
+	
+	public Dataset<Product> getProductListInComposed_ofByProductCondition(conditions.Condition<conditions.ProductAttribute> product_condition){
+		return getProductListInComposed_of(null, product_condition, null);
+	}
+	public Dataset<Product> getProductListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition
+	){
+		return getProductListInComposed_of(null, null, composed_of_condition);
+	}
+	public abstract Dataset<Product> getProductListInBelongs_to(conditions.Condition<conditions.ProductAttribute> product_condition,conditions.Condition<conditions.CategoryAttribute> category_condition);
+	
+	public Dataset<Product> getProductListInBelongs_toByProductCondition(conditions.Condition<conditions.ProductAttribute> product_condition){
+		return getProductListInBelongs_to(product_condition, null);
+	}
+	public Dataset<Product> getProductListInBelongs_toByCategoryCondition(conditions.Condition<conditions.CategoryAttribute> category_condition){
+		return getProductListInBelongs_to(null, category_condition);
+	}
+	
+	public Dataset<Product> getProductListInBelongs_toByCategory(pojo.Category category){
+		if(category == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(CategoryAttribute.id,Operator.EQUALS, category.getId());
+		Dataset<Product> res = getProductListInBelongs_toByCategoryCondition(c);
+		return res;
+	}
+	
 	
 	public abstract boolean insertProduct(
 		Product product,
-		Supplier	supplierInsert);
+		Supplier	supplierInsert,
+		Category	categoryBelongs_to);
 	
-	public abstract boolean insertProductInProductsInfoFromRelData(Product product); 
 	public abstract boolean insertProductInStockInfoPairsFromRedisDB(Product product); 
+	public abstract boolean insertProductInProductsInfoFromRelData(Product product,
+		Supplier	supplierInsert,
+		Category	categoryBelongs_to);
 	private boolean inUpdateMethod = false;
 	private List<Row> allProductIdList = null;
 	public abstract void updateProductList(conditions.Condition<conditions.ProductAttribute> condition, conditions.SetClause<conditions.ProductAttribute> set);
@@ -463,6 +547,68 @@ public abstract class ProductService {
 	){
 		updateProductListInInsert(null, product_condition, set);
 	}
+	public abstract void updateProductListInComposed_of(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of,
+		conditions.SetClause<conditions.ProductAttribute> set
+	);
+	
+	public void updateProductListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(order_condition, null, null, set);
+	}
+	
+	public void updateProductListInComposed_ofByOrder(
+		pojo.Order order,
+		conditions.SetClause<conditions.ProductAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateProductListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(null, product_condition, null, set);
+	}
+	public void updateProductListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(null, null, composed_of_condition, set);
+	}
+	public abstract void updateProductListInBelongs_to(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		
+		conditions.SetClause<conditions.ProductAttribute> set
+	);
+	
+	public void updateProductListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInBelongs_to(product_condition, null, set);
+	}
+	public void updateProductListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInBelongs_to(null, category_condition, set);
+	}
+	
+	public void updateProductListInBelongs_toByCategory(
+		pojo.Category category,
+		conditions.SetClause<conditions.ProductAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 	
 	public abstract void deleteProductList(conditions.Condition<conditions.ProductAttribute> condition);
@@ -493,5 +639,55 @@ public abstract class ProductService {
 	){
 		deleteProductListInInsert(null, product_condition);
 	}
+	public abstract void deleteProductListInComposed_of(	
+		conditions.Condition<conditions.OrderAttribute> order_condition,	
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of);
+	
+	public void deleteProductListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteProductListInComposed_of(order_condition, null, null);
+	}
+	
+	public void deleteProductListInComposed_ofByOrder(
+		pojo.Order order 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteProductListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteProductListInComposed_of(null, product_condition, null);
+	}
+	public void deleteProductListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition
+	){
+		deleteProductListInComposed_of(null, null, composed_of_condition);
+	}
+	public abstract void deleteProductListInBelongs_to(	
+		conditions.Condition<conditions.ProductAttribute> product_condition,	
+		conditions.Condition<conditions.CategoryAttribute> category_condition);
+	
+	public void deleteProductListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteProductListInBelongs_to(product_condition, null);
+	}
+	public void deleteProductListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition
+	){
+		deleteProductListInBelongs_to(null, category_condition);
+	}
+	
+	public void deleteProductListInBelongs_toByCategory(
+		pojo.Category category 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 }

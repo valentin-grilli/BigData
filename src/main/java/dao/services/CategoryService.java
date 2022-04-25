@@ -16,17 +16,23 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import conditions.Condition;
 import conditions.Operator;
 import util.Util;
+import conditions.CategoryAttribute;
+import pojo.Belongs_to;
+import conditions.ProductAttribute;
+import pojo.Product;
 
 public abstract class CategoryService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CategoryService.class);
+	protected Belongs_toService belongs_toService = new dao.impl.Belongs_toServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		
+		BELONGS_TO_CATEGORY
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
+		defaultLoadingParameters.put(ROLE_NAME.BELONGS_TO_CATEGORY, loading.Loading.LAZY);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -239,8 +245,53 @@ public abstract class CategoryService {
 	
 	
 	
+	public Category getCategory(Category.belongs_to role, Product product) {
+		if(role != null) {
+			if(role.equals(Category.belongs_to.category))
+				return getCategoryInBelongs_toByProduct(product);
+		}
+		return null;
+	}
+	
+	public Dataset<Category> getCategoryList(Category.belongs_to role, Condition<ProductAttribute> condition) {
+		if(role != null) {
+			if(role.equals(Category.belongs_to.category))
+				return getCategoryListInBelongs_toByProductCondition(condition);
+		}
+		return null;
+	}
+	
+	public Dataset<Category> getCategoryList(Category.belongs_to role, Condition<ProductAttribute> condition1, Condition<CategoryAttribute> condition2) {
+		if(role != null) {
+			if(role.equals(Category.belongs_to.category))
+				return getCategoryListInBelongs_to(condition1, condition2);
+		}
+		return null;
+	}
 	
 	
+	
+	
+	
+	public abstract Dataset<Category> getCategoryListInBelongs_to(conditions.Condition<conditions.ProductAttribute> product_condition,conditions.Condition<conditions.CategoryAttribute> category_condition);
+	
+	public Dataset<Category> getCategoryListInBelongs_toByProductCondition(conditions.Condition<conditions.ProductAttribute> product_condition){
+		return getCategoryListInBelongs_to(product_condition, null);
+	}
+	
+	public Category getCategoryInBelongs_toByProduct(pojo.Product product){
+		if(product == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(ProductAttribute.id,Operator.EQUALS, product.getId());
+		Dataset<Category> res = getCategoryListInBelongs_toByProductCondition(c);
+		return !res.isEmpty()?res.first():null;
+	}
+	
+	public Dataset<Category> getCategoryListInBelongs_toByCategoryCondition(conditions.Condition<conditions.CategoryAttribute> category_condition){
+		return getCategoryListInBelongs_to(null, category_condition);
+	}
 	
 	
 	public abstract boolean insertCategory(Category category);
@@ -254,6 +305,34 @@ public abstract class CategoryService {
 		//TODO using the id
 		return;
 	}
+	public abstract void updateCategoryListInBelongs_to(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		
+		conditions.SetClause<conditions.CategoryAttribute> set
+	);
+	
+	public void updateCategoryListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.CategoryAttribute> set
+	){
+		updateCategoryListInBelongs_to(product_condition, null, set);
+	}
+	
+	public void updateCategoryInBelongs_toByProduct(
+		pojo.Product product,
+		conditions.SetClause<conditions.CategoryAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateCategoryListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		conditions.SetClause<conditions.CategoryAttribute> set
+	){
+		updateCategoryListInBelongs_to(null, category_condition, set);
+	}
 	
 	
 	public abstract void deleteCategoryList(conditions.Condition<conditions.CategoryAttribute> condition);
@@ -261,6 +340,28 @@ public abstract class CategoryService {
 	public void deleteCategory(pojo.Category category) {
 		//TODO using the id
 		return;
+	}
+	public abstract void deleteCategoryListInBelongs_to(	
+		conditions.Condition<conditions.ProductAttribute> product_condition,	
+		conditions.Condition<conditions.CategoryAttribute> category_condition);
+	
+	public void deleteCategoryListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteCategoryListInBelongs_to(product_condition, null);
+	}
+	
+	public void deleteCategoryInBelongs_toByProduct(
+		pojo.Product product 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteCategoryListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition
+	){
+		deleteCategoryListInBelongs_to(null, category_condition);
 	}
 	
 }

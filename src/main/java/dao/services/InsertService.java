@@ -22,6 +22,14 @@ public abstract class InsertService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(InsertService.class);
 	
 	
+	// Left side 'SupplierRef' of reference [supplierR ]
+	public abstract Dataset<ProductTDO> getProductTDOListProductInSupplierRInProductsInfoFromRelSchema(Condition<ProductAttribute> condition, MutableBoolean refilterFlag);
+	
+	// Right side 'SupplierID' of reference [supplierR ]
+	public abstract Dataset<SupplierTDO> getSupplierTDOListSupplierInSupplierRInProductsInfoFromRelSchema(Condition<SupplierAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
 	
 	public static Dataset<Insert> fullLeftOuterJoinBetweenInsertAndSupplier(Dataset<Insert> d1, Dataset<Supplier> d2) {
 		Dataset<Row> d2_ = d2

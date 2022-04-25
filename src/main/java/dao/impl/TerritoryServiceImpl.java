@@ -382,6 +382,23 @@ public class TerritoryServiceImpl extends TerritoryService {
 		
 		Dataset<Contains> res_contains_territory;
 		Dataset<Territory> res_Territory;
+		// Role 'territory' mapped to EmbeddedObject 'region' - 'Region' containing 'Territory'
+		region_refilter = new MutableBoolean(false);
+		res_contains_territory = containsService.getContainsListInmongoSchemaEmployeesterritoriesregion(territory_condition, region_condition, territory_refilter, region_refilter);
+		if(region_refilter.booleanValue()) {
+			if(all == null)
+				all = new RegionServiceImpl().getRegionList(region_condition);
+			joinCondition = null;
+			joinCondition = res_contains_territory.col("region.id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				res_Territory = res_contains_territory.join(all).select("territory.*").as(Encoders.bean(Territory.class));
+			else
+				res_Territory = res_contains_territory.join(all, joinCondition).select("territory.*").as(Encoders.bean(Territory.class));
+		
+		} else
+			res_Territory = res_contains_territory.map((MapFunction<Contains,Territory>) r -> r.getTerritory(), Encoders.bean(Territory.class));
+		res_Territory = res_Territory.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Territory);
 		
 		
 		//Join datasets or return 
@@ -389,12 +406,6 @@ public class TerritoryServiceImpl extends TerritoryService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Territory>> lonelyTerritoryList = new ArrayList<Dataset<Territory>>();
-		lonelyTerritoryList.add(getTerritoryListInEmployeesFromMyMongoDB(territory_condition, new MutableBoolean(false)));
-		Dataset<Territory> lonelyTerritory = fullOuterJoinsTerritory(lonelyTerritoryList);
-		if(lonelyTerritory != null) {
-			res = fullLeftOuterJoinsTerritory(Arrays.asList(res, lonelyTerritory));
-		}
 		if(territory_refilter.booleanValue())
 			res = res.filter((FilterFunction<Territory>) r -> territory_condition == null || territory_condition.evaluate(r));
 		
@@ -412,6 +423,23 @@ public class TerritoryServiceImpl extends TerritoryService {
 		
 		Dataset<Are_in> res_are_in_territory;
 		Dataset<Territory> res_Territory;
+		// Role 'employee' mapped to EmbeddedObject 'territories' 'Territory' containing 'Employee' 
+		employee_refilter = new MutableBoolean(false);
+		res_are_in_territory = are_inService.getAre_inListInmongoSchemaEmployeesterritories(employee_condition, territory_condition, employee_refilter, territory_refilter);
+		if(employee_refilter.booleanValue()) {
+			if(all == null)
+				all = new EmployeeServiceImpl().getEmployeeList(employee_condition);
+			joinCondition = null;
+			joinCondition = res_are_in_territory.col("employee.id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				res_Territory = res_are_in_territory.join(all).select("territory.*").as(Encoders.bean(Territory.class));
+			else
+				res_Territory = res_are_in_territory.join(all, joinCondition).select("territory.*").as(Encoders.bean(Territory.class));
+		
+		} else
+			res_Territory = res_are_in_territory.map((MapFunction<Are_in,Territory>) r -> r.getTerritory(), Encoders.bean(Territory.class));
+		res_Territory = res_Territory.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Territory);
 		
 		
 		//Join datasets or return 
@@ -419,12 +447,6 @@ public class TerritoryServiceImpl extends TerritoryService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Territory>> lonelyTerritoryList = new ArrayList<Dataset<Territory>>();
-		lonelyTerritoryList.add(getTerritoryListInEmployeesFromMyMongoDB(territory_condition, new MutableBoolean(false)));
-		Dataset<Territory> lonelyTerritory = fullOuterJoinsTerritory(lonelyTerritoryList);
-		if(lonelyTerritory != null) {
-			res = fullLeftOuterJoinsTerritory(Arrays.asList(res, lonelyTerritory));
-		}
 		if(territory_refilter.booleanValue())
 			res = res.filter((FilterFunction<Territory>) r -> territory_condition == null || territory_condition.evaluate(r));
 		
@@ -434,61 +456,23 @@ public class TerritoryServiceImpl extends TerritoryService {
 	
 	public boolean insertTerritory(
 		Territory territory,
-		Region	regionContains,
-		 List<Employee> employeeAre_in){
-		 	boolean inserted = false;
-		 	// Insert in standalone structures
-		 	inserted = insertTerritoryInEmployeesFromMyMongoDB(territory)|| inserted ;
-		 	// Insert in structures containing double embedded role
-		 	// Insert in descending structures
-		 	// Insert in ascending structures 
-		 	// Insert in ref structures 
-		 	// Insert in ref structures mapped to opposite role of mandatory role  
-		 	return inserted;
-		 }
-	
-	public boolean insertTerritoryInEmployeesFromMyMongoDB(Territory territory)	{
-		String idvalue="";
-		idvalue+=territory.getId();
-		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
-		if(!entityExists){
-		Bson filter = new Document();
-		Bson updateOp;
-		Document docEmployees_1 = new Document();
-		// Embedded structure territories
-			Document docterritories_2 = new Document();
-			docterritories_2.append("TerritoryDescription",territory.getDescription());
-			docterritories_2.append("TerritoryID",territory.getId());
-			// Embedded structure region
-			
-			List<Document> arrayterritories_1 = new ArrayList();
-			arrayterritories_1.add(docterritories_2);
-			docEmployees_1.append("territories", arrayterritories_1);
-		
-		filter = eq("TerritoryID",territory.getId());
-		updateOp = setOnInsert(docEmployees_1);
-		DBConnectionMgr.upsertMany(filter, updateOp, "Employees", "myMongoDB");
-			logger.info("Inserted [Territory] entity ID [{}] in [Employees] in database [MyMongoDB]", idvalue);
+		Region	regionContains){
+			boolean inserted = false;
+			// Insert in standalone structures
+			// Insert in structures containing double embedded role
+			// Insert in descending structures
+			// Insert in ascending structures 
+			// Insert in ref structures 
+			// Insert in ref structures mapped to opposite role of mandatory role  
+			return inserted;
 		}
-		else
-			logger.warn("[Territory] entity ID [{}] already present in [Employees] in database [MyMongoDB]", idvalue);
-		return !entityExists;
-	} 
 	
 	private boolean inUpdateMethod = false;
 	private List<Row> allTerritoryIdList = null;
 	public void updateTerritoryList(conditions.Condition<conditions.TerritoryAttribute> condition, conditions.SetClause<conditions.TerritoryAttribute> set){
 		inUpdateMethod = true;
 		try {
-			MutableBoolean refilterInEmployeesFromMyMongoDB = new MutableBoolean(false);
-			getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(condition, new ArrayList<String>(), new HashSet<String>(), refilterInEmployeesFromMyMongoDB);
-			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
-			if(refilterInEmployeesFromMyMongoDB.booleanValue())
-				updateTerritoryListInEmployeesFromMyMongoDB(condition, set);
-		
 	
-			if(!refilterInEmployeesFromMyMongoDB.booleanValue())
-				updateTerritoryListInEmployeesFromMyMongoDB(condition, set);
 	
 		} finally {
 			inUpdateMethod = false;
@@ -496,89 +480,6 @@ public class TerritoryServiceImpl extends TerritoryService {
 	}
 	
 	
-	public void updateTerritoryListInEmployeesFromMyMongoDB(Condition<TerritoryAttribute> condition, SetClause<TerritoryAttribute> set) {
-		Pair<List<String>, List<String>> updates = getBSONUpdateQueryInEmployeesFromMyMongoDB(set);
-		List<String> sets = updates.getLeft();
-		final List<String> arrayVariableNames = updates.getRight();
-		String setBSON = null;
-		for(int i = 0; i < sets.size(); i++) {
-			if(i == 0)
-				setBSON = sets.get(i);
-			else
-				setBSON += ", " + sets.get(i);
-		}
-		
-		if(setBSON == null)
-			return;
-		
-		Document updateQuery = null;
-		setBSON = "{$set: {" + setBSON + "}}";
-		updateQuery = Document.parse(setBSON);
-		
-		MutableBoolean refilter = new MutableBoolean(false);
-		Set<String> arrayVariablesUsed = new HashSet<String>();
-		Pair<String, List<String>> queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(condition, arrayVariableNames, arrayVariablesUsed, refilter);
-		Document query = null;
-		String bsonQuery = queryAndArrayFilter.getLeft();
-		if(bsonQuery != null) {
-			bsonQuery = "{" + bsonQuery + "}";
-			query = Document.parse(bsonQuery);	
-		}
-		
-		List<Bson> arrayFilterDocs = new ArrayList<Bson>();
-		List<String> arrayFilters = queryAndArrayFilter.getRight();
-		for(String arrayFilter : arrayFilters)
-			arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
-		
-		for(String arrayVariableName : arrayVariableNames)
-			if(!arrayVariablesUsed.contains(arrayVariableName)) {
-				arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
-			}
-		
-		
-		if(!refilter.booleanValue()) {
-			if(arrayFilterDocs.size() == 0) {
-				DBConnectionMgr.update(query, updateQuery, "Employees", "myMongoDB");
-			} else {
-				DBConnectionMgr.upsertMany(query, updateQuery, arrayFilterDocs, "Employees", "myMongoDB");
-			}
-		
-			
-		} else {
-			if(!inUpdateMethod || allTerritoryIdList == null)
-				allTerritoryIdList = this.getTerritoryList(condition).select("id").collectAsList();
-			List<com.mongodb.client.model.UpdateManyModel<Document>> updateQueries = new ArrayList<com.mongodb.client.model.UpdateManyModel<Document>>();
-			for(Row row : allTerritoryIdList) {
-				Condition<TerritoryAttribute> conditionId = null;
-				conditionId = Condition.simple(TerritoryAttribute.id, Operator.EQUALS, row.getAs("id"));
-		
-				arrayVariablesUsed = new HashSet<String>();
-				queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(conditionId, arrayVariableNames, arrayVariablesUsed, refilter);
-				query = null;
-				bsonQuery = queryAndArrayFilter.getLeft();
-				if(bsonQuery != null) {
-					bsonQuery = "{" + bsonQuery + "}";
-					query = Document.parse(bsonQuery);	
-				}
-				
-				arrayFilterDocs = new ArrayList<Bson>();
-				arrayFilters = queryAndArrayFilter.getRight();
-				for(String arrayFilter : arrayFilters)
-					arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
-				
-				for(String arrayVariableName : arrayVariableNames)
-					if(!arrayVariablesUsed.contains(arrayVariableName)) {
-						arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
-					}
-				if(arrayFilterDocs.size() == 0)
-					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery));
-				else
-					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery, new com.mongodb.client.model.UpdateOptions().arrayFilters(arrayFilterDocs)));
-			}
-		
-			DBConnectionMgr.bulkUpdatesInMongoDB(updateQueries, "Employees", "myMongoDB");
-		}
-	}
 	
 	
 	

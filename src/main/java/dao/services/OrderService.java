@@ -28,23 +28,29 @@ import conditions.OrderAttribute;
 import pojo.Handle;
 import conditions.EmployeeAttribute;
 import pojo.Employee;
+import conditions.OrderAttribute;
+import pojo.Composed_of;
+import conditions.ProductAttribute;
+import pojo.Product;
 
 public abstract class OrderService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(OrderService.class);
 	protected Make_byService make_byService = new dao.impl.Make_byServiceImpl();
 	protected Ship_viaService ship_viaService = new dao.impl.Ship_viaServiceImpl();
 	protected HandleService handleService = new dao.impl.HandleServiceImpl();
+	protected Composed_ofService composed_ofService = new dao.impl.Composed_ofServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		MAKE_BY_ORDER, SHIP_VIA_ORDER, HANDLE_ORDER
+		MAKE_BY_ORDER, SHIP_VIA_ORDER, HANDLE_ORDER, COMPOSED_OF_ORDER
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
 		defaultLoadingParameters.put(ROLE_NAME.MAKE_BY_ORDER, loading.Loading.EAGER);
 		defaultLoadingParameters.put(ROLE_NAME.SHIP_VIA_ORDER, loading.Loading.EAGER);
 		defaultLoadingParameters.put(ROLE_NAME.HANDLE_ORDER, loading.Loading.EAGER);
+		defaultLoadingParameters.put(ROLE_NAME.COMPOSED_OF_ORDER, loading.Loading.LAZY);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -474,6 +480,7 @@ public abstract class OrderService {
 	
 	
 	
+	
 	public abstract Dataset<Order> getOrderListInMake_by(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.CustomerAttribute> client_condition);
 	
 	public Dataset<Order> getOrderListInMake_byByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
@@ -531,6 +538,30 @@ public abstract class OrderService {
 	public Dataset<Order> getOrderListInHandleByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
 		return getOrderListInHandle(null, order_condition);
 	}
+	public abstract Dataset<Order> getOrderListInComposed_of(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.ProductAttribute> product_condition, conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition);
+	
+	public Dataset<Order> getOrderListInComposed_ofByOrderCondition(conditions.Condition<conditions.OrderAttribute> order_condition){
+		return getOrderListInComposed_of(order_condition, null, null);
+	}
+	public Dataset<Order> getOrderListInComposed_ofByProductCondition(conditions.Condition<conditions.ProductAttribute> product_condition){
+		return getOrderListInComposed_of(null, product_condition, null);
+	}
+	
+	public Dataset<Order> getOrderListInComposed_ofByProduct(pojo.Product product){
+		if(product == null)
+			return null;
+	
+		Condition c;
+		c=Condition.simple(ProductAttribute.id,Operator.EQUALS, product.getId());
+		Dataset<Order> res = getOrderListInComposed_ofByProductCondition(c);
+		return res;
+	}
+	
+	public Dataset<Order> getOrderListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition
+	){
+		return getOrderListInComposed_of(null, null, composed_of_condition);
+	}
 	
 	public abstract boolean insertOrder(
 		Order order,
@@ -538,7 +569,10 @@ public abstract class OrderService {
 		Shipper	shipperShip_via,
 		Employee	employeeHandle);
 	
-	public abstract boolean insertOrderInOrdersFromMyMongoDB(Order order); 
+	public abstract boolean insertOrderInOrdersFromMyMongoDB(Order order,
+		Customer	clientMake_by,
+		Shipper	shipperShip_via,
+		Employee	employeeHandle);
 	private boolean inUpdateMethod = false;
 	private List<Row> allOrderIdList = null;
 	public abstract void updateOrderList(conditions.Condition<conditions.OrderAttribute> condition, conditions.SetClause<conditions.OrderAttribute> set);
@@ -631,6 +665,40 @@ public abstract class OrderService {
 	){
 		updateOrderListInHandle(null, order_condition, set);
 	}
+	public abstract void updateOrderListInComposed_of(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of,
+		conditions.SetClause<conditions.OrderAttribute> set
+	);
+	
+	public void updateOrderListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInComposed_of(order_condition, null, null, set);
+	}
+	public void updateOrderListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInComposed_of(null, product_condition, null, set);
+	}
+	
+	public void updateOrderListInComposed_ofByProduct(
+		pojo.Product product,
+		conditions.SetClause<conditions.OrderAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateOrderListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition,
+		conditions.SetClause<conditions.OrderAttribute> set
+	){
+		updateOrderListInComposed_of(null, null, composed_of_condition, set);
+	}
 	
 	
 	public abstract void deleteOrderList(conditions.Condition<conditions.OrderAttribute> condition);
@@ -704,6 +772,34 @@ public abstract class OrderService {
 		conditions.Condition<conditions.OrderAttribute> order_condition
 	){
 		deleteOrderListInHandle(null, order_condition);
+	}
+	public abstract void deleteOrderListInComposed_of(	
+		conditions.Condition<conditions.OrderAttribute> order_condition,	
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of);
+	
+	public void deleteOrderListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteOrderListInComposed_of(order_condition, null, null);
+	}
+	public void deleteOrderListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteOrderListInComposed_of(null, product_condition, null);
+	}
+	
+	public void deleteOrderListInComposed_ofByProduct(
+		pojo.Product product 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteOrderListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition
+	){
+		deleteOrderListInComposed_of(null, null, composed_of_condition);
 	}
 	
 }

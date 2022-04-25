@@ -73,6 +73,8 @@ public class SimpleCondition<E> extends Condition<E> {
 			return evaluateRegion((Region) obj);
 		if(obj instanceof Territory)
 			return evaluateTerritory((Territory) obj);
+		if(obj instanceof Composed_of)
+			return evaluateComposed_of((Composed_of) obj);
 		return true;
 	}
 
@@ -328,6 +330,24 @@ public class SimpleCondition<E> extends Condition<E> {
 			objectValue = obj.getId();
 		if(attr == TerritoryAttribute.description)
 			objectValue = obj.getDescription();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+		private boolean evaluateComposed_of(Composed_of obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		Composed_ofAttribute attr = (Composed_ofAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == Composed_ofAttribute.unitPrice)
+			objectValue = obj.getUnitPrice();
+		if(attr == Composed_ofAttribute.quantity)
+			objectValue = obj.getQuantity();
+		if(attr == Composed_ofAttribute.discount)
+			objectValue = obj.getDiscount();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}

@@ -22,6 +22,14 @@ public abstract class HandleService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HandleService.class);
 	
 	
+	// Left side 'EmployeeRef' of reference [employeeRef ]
+	public abstract Dataset<OrderTDO> getOrderTDOListOrderInEmployeeRefInOrdersFromMongoSchema(Condition<OrderAttribute> condition, MutableBoolean refilterFlag);
+	
+	// Right side 'EmployeeID' of reference [employeeRef ]
+	public abstract Dataset<EmployeeTDO> getEmployeeTDOListEmployeeInEmployeeRefInOrdersFromMongoSchema(Condition<EmployeeAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
 	
 	public static Dataset<Handle> fullLeftOuterJoinBetweenHandleAndEmployee(Dataset<Handle> d1, Dataset<Employee> d2) {
 		Dataset<Row> d2_ = d2

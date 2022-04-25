@@ -21,6 +21,8 @@ import util.Util;
 public abstract class Are_inService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Are_inService.class);
 	
+	// method accessing the embedded object territories mapped to role employee
+	public abstract Dataset<Are_in> getAre_inListInmongoSchemaEmployeesterritories(Condition<EmployeeAttribute> employee_condition, Condition<TerritoryAttribute> territory_condition, MutableBoolean employee_refilter, MutableBoolean territory_refilter);
 	
 	
 	public static Dataset<Are_in> fullLeftOuterJoinBetweenAre_inAndEmployee(Dataset<Are_in> d1, Dataset<Employee> d2) {
@@ -659,6 +661,7 @@ public abstract class Are_inService {
 	public abstract void insertAre_in(Are_in are_in);
 	
 	
+	public 	abstract boolean insertAre_inInEmbeddedStructEmployeesInMyMongoDB(Are_in are_in);
 	
 	
 	 public void insertAre_in(Employee employee ,Territory territory ){

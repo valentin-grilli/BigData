@@ -1109,6 +1109,23 @@ public class EmployeeServiceImpl extends EmployeeService {
 		
 		Dataset<Are_in> res_are_in_employee;
 		Dataset<Employee> res_Employee;
+		// Role 'employee' mapped to EmbeddedObject 'territories' - 'Territory' containing 'Employee'
+		territory_refilter = new MutableBoolean(false);
+		res_are_in_employee = are_inService.getAre_inListInmongoSchemaEmployeesterritories(employee_condition, territory_condition, employee_refilter, territory_refilter);
+		if(territory_refilter.booleanValue()) {
+			if(all == null)
+				all = new TerritoryServiceImpl().getTerritoryList(territory_condition);
+			joinCondition = null;
+			joinCondition = res_are_in_employee.col("territory.id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				res_Employee = res_are_in_employee.join(all).select("employee.*").as(Encoders.bean(Employee.class));
+			else
+				res_Employee = res_are_in_employee.join(all, joinCondition).select("employee.*").as(Encoders.bean(Employee.class));
+		
+		} else
+			res_Employee = res_are_in_employee.map((MapFunction<Are_in,Employee>) r -> r.getEmployee(), Encoders.bean(Employee.class));
+		res_Employee = res_Employee.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Employee);
 		
 		
 		//Join datasets or return 
@@ -1116,12 +1133,6 @@ public class EmployeeServiceImpl extends EmployeeService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Employee>> lonelyEmployeeList = new ArrayList<Dataset<Employee>>();
-		lonelyEmployeeList.add(getEmployeeListInEmployeesFromMyMongoDB(employee_condition, new MutableBoolean(false)));
-		Dataset<Employee> lonelyEmployee = fullOuterJoinsEmployee(lonelyEmployeeList);
-		if(lonelyEmployee != null) {
-			res = fullLeftOuterJoinsEmployee(Arrays.asList(res, lonelyEmployee));
-		}
 		if(employee_refilter.booleanValue())
 			res = res.filter((FilterFunction<Employee>) r -> employee_condition == null || employee_condition.evaluate(r));
 		
@@ -1135,6 +1146,47 @@ public class EmployeeServiceImpl extends EmployeeService {
 		boolean all_already_persisted = false;
 		MutableBoolean higherEmployee_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
+		// For role 'lowerEmployee' in reference 'reportToRef'. A->B Scenario
+		higherEmployee_refilter = new MutableBoolean(false);
+		Dataset<EmployeeTDO> employeeTDOreportToReflowerEmployee = report_toService.getEmployeeTDOListLowerEmployeeInReportToRefInEmployeesFromMongoSchema(lowerEmployee_condition, lowerEmployee_refilter);
+		Dataset<EmployeeTDO> employeeTDOreportToRefhigherEmployee = report_toService.getEmployeeTDOListHigherEmployeeInReportToRefInEmployeesFromMongoSchema(higherEmployee_condition, higherEmployee_refilter);
+		if(higherEmployee_refilter.booleanValue()) {
+			if(all == null)
+				all = new EmployeeServiceImpl().getEmployeeList(higherEmployee_condition);
+			joinCondition = null;
+			joinCondition = employeeTDOreportToRefhigherEmployee.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				employeeTDOreportToRefhigherEmployee = employeeTDOreportToRefhigherEmployee.as("A").join(all).select("A.*").as(Encoders.bean(EmployeeTDO.class));
+			else
+				employeeTDOreportToRefhigherEmployee = employeeTDOreportToRefhigherEmployee.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(EmployeeTDO.class));
+		}
+	
+		
+		Dataset<Row> res_reportToRef = employeeTDOreportToReflowerEmployee.join(employeeTDOreportToRefhigherEmployee
+				.withColumnRenamed("id", "Employee_id")
+				.withColumnRenamed("address", "Employee_address")
+				.withColumnRenamed("birthDate", "Employee_birthDate")
+				.withColumnRenamed("city", "Employee_city")
+				.withColumnRenamed("country", "Employee_country")
+				.withColumnRenamed("extension", "Employee_extension")
+				.withColumnRenamed("firstname", "Employee_firstname")
+				.withColumnRenamed("hireDate", "Employee_hireDate")
+				.withColumnRenamed("homePhone", "Employee_homePhone")
+				.withColumnRenamed("lastname", "Employee_lastname")
+				.withColumnRenamed("photo", "Employee_photo")
+				.withColumnRenamed("postalCode", "Employee_postalCode")
+				.withColumnRenamed("region", "Employee_region")
+				.withColumnRenamed("salary", "Employee_salary")
+				.withColumnRenamed("title", "Employee_title")
+				.withColumnRenamed("notes", "Employee_notes")
+				.withColumnRenamed("photoPath", "Employee_photoPath")
+				.withColumnRenamed("titleOfCourtesy", "Employee_titleOfCourtesy")
+				.withColumnRenamed("logEvents", "Employee_logEvents"),
+				employeeTDOreportToReflowerEmployee.col("mongoSchema_Employees_reportToRef_ReportsTo").equalTo(employeeTDOreportToRefhigherEmployee.col("mongoSchema_Employees_reportToRef_EmployeeID")));
+		Dataset<Employee> res_Employee_reportToRef = res_reportToRef.select( "id", "address", "birthDate", "city", "country", "extension", "firstname", "hireDate", "homePhone", "lastname", "photo", "postalCode", "region", "salary", "title", "notes", "photoPath", "titleOfCourtesy", "logEvents").as(Encoders.bean(Employee.class));
+		
+		res_Employee_reportToRef = res_Employee_reportToRef.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Employee_reportToRef);
 		
 		
 		Dataset<Report_to> res_report_to_lowerEmployee;
@@ -1146,12 +1198,6 @@ public class EmployeeServiceImpl extends EmployeeService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Employee>> lonelyEmployeeList = new ArrayList<Dataset<Employee>>();
-		lonelyEmployeeList.add(getEmployeeListInEmployeesFromMyMongoDB(lowerEmployee_condition, new MutableBoolean(false)));
-		Dataset<Employee> lonelyEmployee = fullOuterJoinsEmployee(lonelyEmployeeList);
-		if(lonelyEmployee != null) {
-			res = fullLeftOuterJoinsEmployee(Arrays.asList(res, lonelyEmployee));
-		}
 		if(lowerEmployee_refilter.booleanValue())
 			res = res.filter((FilterFunction<Employee>) r -> lowerEmployee_condition == null || lowerEmployee_condition.evaluate(r));
 		
@@ -1166,6 +1212,45 @@ public class EmployeeServiceImpl extends EmployeeService {
 		MutableBoolean lowerEmployee_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
 		
+		lowerEmployee_refilter = new MutableBoolean(false);
+		// For role 'lowerEmployee' in reference 'reportToRef'  B->A Scenario
+		Dataset<EmployeeTDO> employeeTDOreportToReflowerEmployee = report_toService.getEmployeeTDOListLowerEmployeeInReportToRefInEmployeesFromMongoSchema(lowerEmployee_condition, lowerEmployee_refilter);
+		Dataset<EmployeeTDO> employeeTDOreportToRefhigherEmployee = report_toService.getEmployeeTDOListHigherEmployeeInReportToRefInEmployeesFromMongoSchema(higherEmployee_condition, higherEmployee_refilter);
+		if(lowerEmployee_refilter.booleanValue()) {
+			if(all == null)
+				all = new EmployeeServiceImpl().getEmployeeList(lowerEmployee_condition);
+			joinCondition = null;
+			joinCondition = employeeTDOreportToReflowerEmployee.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				employeeTDOreportToReflowerEmployee = employeeTDOreportToReflowerEmployee.as("A").join(all).select("A.*").as(Encoders.bean(EmployeeTDO.class));
+			else
+				employeeTDOreportToReflowerEmployee = employeeTDOreportToReflowerEmployee.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(EmployeeTDO.class));
+		}
+		Dataset<Row> res_reportToRef = 
+			employeeTDOreportToRefhigherEmployee.join(employeeTDOreportToReflowerEmployee
+				.withColumnRenamed("id", "Employee_id")
+				.withColumnRenamed("address", "Employee_address")
+				.withColumnRenamed("birthDate", "Employee_birthDate")
+				.withColumnRenamed("city", "Employee_city")
+				.withColumnRenamed("country", "Employee_country")
+				.withColumnRenamed("extension", "Employee_extension")
+				.withColumnRenamed("firstname", "Employee_firstname")
+				.withColumnRenamed("hireDate", "Employee_hireDate")
+				.withColumnRenamed("homePhone", "Employee_homePhone")
+				.withColumnRenamed("lastname", "Employee_lastname")
+				.withColumnRenamed("photo", "Employee_photo")
+				.withColumnRenamed("postalCode", "Employee_postalCode")
+				.withColumnRenamed("region", "Employee_region")
+				.withColumnRenamed("salary", "Employee_salary")
+				.withColumnRenamed("title", "Employee_title")
+				.withColumnRenamed("notes", "Employee_notes")
+				.withColumnRenamed("photoPath", "Employee_photoPath")
+				.withColumnRenamed("titleOfCourtesy", "Employee_titleOfCourtesy")
+				.withColumnRenamed("logEvents", "Employee_logEvents"),
+				employeeTDOreportToRefhigherEmployee.col("mongoSchema_Employees_reportToRef_EmployeeID").equalTo(employeeTDOreportToReflowerEmployee.col("mongoSchema_Employees_reportToRef_ReportsTo")));
+		Dataset<Employee> res_Employee_reportToRef = res_reportToRef.select( "id", "address", "birthDate", "city", "country", "extension", "firstname", "hireDate", "homePhone", "lastname", "photo", "postalCode", "region", "salary", "title", "notes", "photoPath", "titleOfCourtesy", "logEvents").as(Encoders.bean(Employee.class));
+		res_Employee_reportToRef = res_Employee_reportToRef.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Employee_reportToRef);
 		
 		Dataset<Report_to> res_report_to_higherEmployee;
 		Dataset<Employee> res_Employee;
@@ -1176,12 +1261,6 @@ public class EmployeeServiceImpl extends EmployeeService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Employee>> lonelyEmployeeList = new ArrayList<Dataset<Employee>>();
-		lonelyEmployeeList.add(getEmployeeListInEmployeesFromMyMongoDB(higherEmployee_condition, new MutableBoolean(false)));
-		Dataset<Employee> lonelyEmployee = fullOuterJoinsEmployee(lonelyEmployeeList);
-		if(lonelyEmployee != null) {
-			res = fullLeftOuterJoinsEmployee(Arrays.asList(res, lonelyEmployee));
-		}
 		if(higherEmployee_refilter.booleanValue())
 			res = res.filter((FilterFunction<Employee>) r -> higherEmployee_condition == null || higherEmployee_condition.evaluate(r));
 		
@@ -1196,6 +1275,38 @@ public class EmployeeServiceImpl extends EmployeeService {
 		MutableBoolean order_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
 		
+		order_refilter = new MutableBoolean(false);
+		// For role 'order' in reference 'employeeRef'  B->A Scenario
+		Dataset<OrderTDO> orderTDOemployeeReforder = handleService.getOrderTDOListOrderInEmployeeRefInOrdersFromMongoSchema(order_condition, order_refilter);
+		Dataset<EmployeeTDO> employeeTDOemployeeRefemployee = handleService.getEmployeeTDOListEmployeeInEmployeeRefInOrdersFromMongoSchema(employee_condition, employee_refilter);
+		if(order_refilter.booleanValue()) {
+			if(all == null)
+				all = new OrderServiceImpl().getOrderList(order_condition);
+			joinCondition = null;
+			joinCondition = orderTDOemployeeReforder.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				orderTDOemployeeReforder = orderTDOemployeeReforder.as("A").join(all).select("A.*").as(Encoders.bean(OrderTDO.class));
+			else
+				orderTDOemployeeReforder = orderTDOemployeeReforder.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(OrderTDO.class));
+		}
+		Dataset<Row> res_employeeRef = 
+			employeeTDOemployeeRefemployee.join(orderTDOemployeeReforder
+				.withColumnRenamed("id", "Order_id")
+				.withColumnRenamed("freight", "Order_freight")
+				.withColumnRenamed("orderDate", "Order_orderDate")
+				.withColumnRenamed("requiredDate", "Order_requiredDate")
+				.withColumnRenamed("shipAddress", "Order_shipAddress")
+				.withColumnRenamed("shipCity", "Order_shipCity")
+				.withColumnRenamed("shipCountry", "Order_shipCountry")
+				.withColumnRenamed("shipName", "Order_shipName")
+				.withColumnRenamed("shipPostalCode", "Order_shipPostalCode")
+				.withColumnRenamed("shipRegion", "Order_shipRegion")
+				.withColumnRenamed("shippedDate", "Order_shippedDate")
+				.withColumnRenamed("logEvents", "Order_logEvents"),
+				employeeTDOemployeeRefemployee.col("mongoSchema_Orders_employeeRef_EmployeeID").equalTo(orderTDOemployeeReforder.col("mongoSchema_Orders_employeeRef_EmployeeRef")));
+		Dataset<Employee> res_Employee_employeeRef = res_employeeRef.select( "id", "address", "birthDate", "city", "country", "extension", "firstname", "hireDate", "homePhone", "lastname", "photo", "postalCode", "region", "salary", "title", "notes", "photoPath", "titleOfCourtesy", "logEvents").as(Encoders.bean(Employee.class));
+		res_Employee_employeeRef = res_Employee_employeeRef.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Employee_employeeRef);
 		
 		Dataset<Handle> res_handle_employee;
 		Dataset<Employee> res_Employee;
@@ -1206,12 +1317,6 @@ public class EmployeeServiceImpl extends EmployeeService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Employee>> lonelyEmployeeList = new ArrayList<Dataset<Employee>>();
-		lonelyEmployeeList.add(getEmployeeListInEmployeesFromMyMongoDB(employee_condition, new MutableBoolean(false)));
-		Dataset<Employee> lonelyEmployee = fullOuterJoinsEmployee(lonelyEmployeeList);
-		if(lonelyEmployee != null) {
-			res = fullLeftOuterJoinsEmployee(Arrays.asList(res, lonelyEmployee));
-		}
 		if(employee_refilter.booleanValue())
 			res = res.filter((FilterFunction<Employee>) r -> employee_condition == null || employee_condition.evaluate(r));
 		
@@ -1219,20 +1324,13 @@ public class EmployeeServiceImpl extends EmployeeService {
 		return res;
 		}
 	
-	public boolean insertEmployee(
-		Employee employee,
-		 List<Territory> territoryAre_in,
-		 List<Order> orderHandle){
-		 	boolean inserted = false;
-		 	// Insert in standalone structures
-		 	inserted = insertEmployeeInEmployeesFromMyMongoDB(employee)|| inserted ;
-		 	// Insert in structures containing double embedded role
-		 	// Insert in descending structures
-		 	// Insert in ascending structures 
-		 	// Insert in ref structures 
-		 	// Insert in ref structures mapped to opposite role of mandatory role  
-		 	return inserted;
-		 }
+	
+	public boolean insertEmployee(Employee employee){
+		// Insert into all mapped standalone AbstractPhysicalStructure 
+		boolean inserted = false;
+			inserted = insertEmployeeInEmployeesFromMyMongoDB(employee) || inserted ;
+		return inserted;
+	}
 	
 	public boolean insertEmployeeInEmployeesFromMyMongoDB(Employee employee)	{
 		String idvalue="";
@@ -1260,7 +1358,6 @@ public class EmployeeServiceImpl extends EmployeeService {
 		docEmployees_1.append("Notes",employee.getNotes());
 		docEmployees_1.append("PhotoPath",employee.getPhotoPath());
 		docEmployees_1.append("TitleOfCourtesy",employee.getTitleOfCourtesy());
-		// Embedded structure territories
 		
 		filter = eq("EmployeeID",employee.getId());
 		updateOp = setOnInsert(docEmployees_1);

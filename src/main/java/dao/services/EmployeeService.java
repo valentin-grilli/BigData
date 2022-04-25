@@ -630,6 +630,7 @@ public abstract class EmployeeService {
 	
 	
 	
+	
 	public abstract Dataset<Employee> getEmployeeListInAre_in(conditions.Condition<conditions.EmployeeAttribute> employee_condition,conditions.Condition<conditions.TerritoryAttribute> territory_condition);
 	
 	public Dataset<Employee> getEmployeeListInAre_inByEmployeeCondition(conditions.Condition<conditions.EmployeeAttribute> employee_condition){
@@ -707,10 +708,8 @@ public abstract class EmployeeService {
 	}
 	
 	
-	public abstract boolean insertEmployee(
-		Employee employee,
-		 List<Territory> territoryAre_in,
-		 List<Order> orderHandle);
+	
+	public abstract boolean insertEmployee(Employee employee);
 	
 	public abstract boolean insertEmployeeInEmployeesFromMyMongoDB(Employee employee); 
 	private boolean inUpdateMethod = false;

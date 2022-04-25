@@ -432,6 +432,7 @@ public abstract class SupplierService {
 	
 	
 	
+	
 	public abstract Dataset<Supplier> getSupplierListInInsert(conditions.Condition<conditions.SupplierAttribute> supplier_condition,conditions.Condition<conditions.ProductAttribute> product_condition);
 	
 	public Dataset<Supplier> getSupplierListInInsertBySupplierCondition(conditions.Condition<conditions.SupplierAttribute> supplier_condition){
@@ -452,9 +453,8 @@ public abstract class SupplierService {
 	}
 	
 	
-	public abstract boolean insertSupplier(
-		Supplier supplier,
-		 List<Product> productInsert);
+	
+	public abstract boolean insertSupplier(Supplier supplier);
 	
 	public abstract boolean insertSupplierInSuppliersFromMyMongoDB(Supplier supplier); 
 	private boolean inUpdateMethod = false;

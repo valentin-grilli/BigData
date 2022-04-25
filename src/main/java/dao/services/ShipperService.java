@@ -252,6 +252,7 @@ public abstract class ShipperService {
 	
 	
 	
+	
 	public abstract Dataset<Shipper> getShipperListInShip_via(conditions.Condition<conditions.ShipperAttribute> shipper_condition,conditions.Condition<conditions.OrderAttribute> order_condition);
 	
 	public Dataset<Shipper> getShipperListInShip_viaByShipperCondition(conditions.Condition<conditions.ShipperAttribute> shipper_condition){
@@ -272,9 +273,8 @@ public abstract class ShipperService {
 	}
 	
 	
-	public abstract boolean insertShipper(
-		Shipper shipper,
-		 List<Order> orderShip_via);
+	
+	public abstract boolean insertShipper(Shipper shipper);
 	
 	public abstract boolean insertShipperInShippersFromRelData(Shipper shipper); 
 	private boolean inUpdateMethod = false;

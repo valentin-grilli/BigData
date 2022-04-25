@@ -394,6 +394,23 @@ public class RegionServiceImpl extends RegionService {
 		
 		Dataset<Contains> res_contains_region;
 		Dataset<Region> res_Region;
+		// Role 'territory' mapped to EmbeddedObject 'region' 'Region' containing 'Territory' 
+		territory_refilter = new MutableBoolean(false);
+		res_contains_region = containsService.getContainsListInmongoSchemaEmployeesterritoriesregion(territory_condition, region_condition, territory_refilter, region_refilter);
+		if(territory_refilter.booleanValue()) {
+			if(all == null)
+				all = new TerritoryServiceImpl().getTerritoryList(territory_condition);
+			joinCondition = null;
+			joinCondition = res_contains_region.col("territory.id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				res_Region = res_contains_region.join(all).select("region.*").as(Encoders.bean(Region.class));
+			else
+				res_Region = res_contains_region.join(all, joinCondition).select("region.*").as(Encoders.bean(Region.class));
+		
+		} else
+			res_Region = res_contains_region.map((MapFunction<Contains,Region>) r -> r.getRegion(), Encoders.bean(Region.class));
+		res_Region = res_Region.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Region);
 		
 		
 		//Join datasets or return 
@@ -401,12 +418,6 @@ public class RegionServiceImpl extends RegionService {
 		if(res == null)
 			return null;
 	
-		List<Dataset<Region>> lonelyRegionList = new ArrayList<Dataset<Region>>();
-		lonelyRegionList.add(getRegionListInEmployeesFromMyMongoDB(region_condition, new MutableBoolean(false)));
-		Dataset<Region> lonelyRegion = fullOuterJoinsRegion(lonelyRegionList);
-		if(lonelyRegion != null) {
-			res = fullLeftOuterJoinsRegion(Arrays.asList(res, lonelyRegion));
-		}
 		if(region_refilter.booleanValue())
 			res = res.filter((FilterFunction<Region>) r -> region_condition == null || region_condition.evaluate(r));
 		
@@ -414,65 +425,19 @@ public class RegionServiceImpl extends RegionService {
 		return res;
 		}
 	
-	public boolean insertRegion(
-		Region region,
-		 List<Territory> territoryContains){
-		 	boolean inserted = false;
-		 	// Insert in standalone structures
-		 	inserted = insertRegionInEmployeesFromMyMongoDB(region)|| inserted ;
-		 	// Insert in structures containing double embedded role
-		 	// Insert in descending structures
-		 	// Insert in ascending structures 
-		 	// Insert in ref structures 
-		 	// Insert in ref structures mapped to opposite role of mandatory role  
-		 	return inserted;
-		 }
 	
-	public boolean insertRegionInEmployeesFromMyMongoDB(Region region)	{
-		String idvalue="";
-		idvalue+=region.getId();
-		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
-		if(!entityExists){
-		Bson filter = new Document();
-		Bson updateOp;
-		Document docEmployees_1 = new Document();
-		// Embedded structure territories
-			Document docterritories_2 = new Document();
-			// Embedded structure region
-				Document docregion_3 = new Document();
-				docregion_3.append("RegionDescription",region.getDescription());
-				docregion_3.append("RegionID",region.getId());
-				
-				docterritories_2.append("region", docregion_3);
-			
-			List<Document> arrayterritories_1 = new ArrayList();
-			arrayterritories_1.add(docterritories_2);
-			docEmployees_1.append("territories", arrayterritories_1);
-		
-		filter = eq("RegionID",region.getId());
-		updateOp = setOnInsert(docEmployees_1);
-		DBConnectionMgr.upsertMany(filter, updateOp, "Employees", "myMongoDB");
-			logger.info("Inserted [Region] entity ID [{}] in [Employees] in database [MyMongoDB]", idvalue);
-		}
-		else
-			logger.warn("[Region] entity ID [{}] already present in [Employees] in database [MyMongoDB]", idvalue);
-		return !entityExists;
-	} 
+	public boolean insertRegion(Region region){
+		// Insert into all mapped standalone AbstractPhysicalStructure 
+		boolean inserted = false;
+		return inserted;
+	}
 	
 	private boolean inUpdateMethod = false;
 	private List<Row> allRegionIdList = null;
 	public void updateRegionList(conditions.Condition<conditions.RegionAttribute> condition, conditions.SetClause<conditions.RegionAttribute> set){
 		inUpdateMethod = true;
 		try {
-			MutableBoolean refilterInEmployeesFromMyMongoDB = new MutableBoolean(false);
-			getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(condition, new ArrayList<String>(), new HashSet<String>(), refilterInEmployeesFromMyMongoDB);
-			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
-			if(refilterInEmployeesFromMyMongoDB.booleanValue())
-				updateRegionListInEmployeesFromMyMongoDB(condition, set);
-		
 	
-			if(!refilterInEmployeesFromMyMongoDB.booleanValue())
-				updateRegionListInEmployeesFromMyMongoDB(condition, set);
 	
 		} finally {
 			inUpdateMethod = false;
@@ -480,89 +445,6 @@ public class RegionServiceImpl extends RegionService {
 	}
 	
 	
-	public void updateRegionListInEmployeesFromMyMongoDB(Condition<RegionAttribute> condition, SetClause<RegionAttribute> set) {
-		Pair<List<String>, List<String>> updates = getBSONUpdateQueryInEmployeesFromMyMongoDB(set);
-		List<String> sets = updates.getLeft();
-		final List<String> arrayVariableNames = updates.getRight();
-		String setBSON = null;
-		for(int i = 0; i < sets.size(); i++) {
-			if(i == 0)
-				setBSON = sets.get(i);
-			else
-				setBSON += ", " + sets.get(i);
-		}
-		
-		if(setBSON == null)
-			return;
-		
-		Document updateQuery = null;
-		setBSON = "{$set: {" + setBSON + "}}";
-		updateQuery = Document.parse(setBSON);
-		
-		MutableBoolean refilter = new MutableBoolean(false);
-		Set<String> arrayVariablesUsed = new HashSet<String>();
-		Pair<String, List<String>> queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(condition, arrayVariableNames, arrayVariablesUsed, refilter);
-		Document query = null;
-		String bsonQuery = queryAndArrayFilter.getLeft();
-		if(bsonQuery != null) {
-			bsonQuery = "{" + bsonQuery + "}";
-			query = Document.parse(bsonQuery);	
-		}
-		
-		List<Bson> arrayFilterDocs = new ArrayList<Bson>();
-		List<String> arrayFilters = queryAndArrayFilter.getRight();
-		for(String arrayFilter : arrayFilters)
-			arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
-		
-		for(String arrayVariableName : arrayVariableNames)
-			if(!arrayVariablesUsed.contains(arrayVariableName)) {
-				arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
-			}
-		
-		
-		if(!refilter.booleanValue()) {
-			if(arrayFilterDocs.size() == 0) {
-				DBConnectionMgr.update(query, updateQuery, "Employees", "myMongoDB");
-			} else {
-				DBConnectionMgr.upsertMany(query, updateQuery, arrayFilterDocs, "Employees", "myMongoDB");
-			}
-		
-			
-		} else {
-			if(!inUpdateMethod || allRegionIdList == null)
-				allRegionIdList = this.getRegionList(condition).select("id").collectAsList();
-			List<com.mongodb.client.model.UpdateManyModel<Document>> updateQueries = new ArrayList<com.mongodb.client.model.UpdateManyModel<Document>>();
-			for(Row row : allRegionIdList) {
-				Condition<RegionAttribute> conditionId = null;
-				conditionId = Condition.simple(RegionAttribute.id, Operator.EQUALS, row.getAs("id"));
-		
-				arrayVariablesUsed = new HashSet<String>();
-				queryAndArrayFilter = getBSONQueryAndArrayFilterForUpdateQueryInEmployeesFromMyMongoDB(conditionId, arrayVariableNames, arrayVariablesUsed, refilter);
-				query = null;
-				bsonQuery = queryAndArrayFilter.getLeft();
-				if(bsonQuery != null) {
-					bsonQuery = "{" + bsonQuery + "}";
-					query = Document.parse(bsonQuery);	
-				}
-				
-				arrayFilterDocs = new ArrayList<Bson>();
-				arrayFilters = queryAndArrayFilter.getRight();
-				for(String arrayFilter : arrayFilters)
-					arrayFilterDocs.add(Document.parse( "{" + arrayFilter + "}"));
-				
-				for(String arrayVariableName : arrayVariableNames)
-					if(!arrayVariablesUsed.contains(arrayVariableName)) {
-						arrayFilterDocs.add(Document.parse("{" + arrayVariableName + ": {$exists: true}}"));
-					}
-				if(arrayFilterDocs.size() == 0)
-					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery));
-				else
-					updateQueries.add(new com.mongodb.client.model.UpdateManyModel<Document>(query, updateQuery, new com.mongodb.client.model.UpdateOptions().arrayFilters(arrayFilterDocs)));
-			}
-		
-			DBConnectionMgr.bulkUpdatesInMongoDB(updateQueries, "Employees", "myMongoDB");
-		}
-	}
 	
 	
 	

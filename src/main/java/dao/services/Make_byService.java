@@ -22,6 +22,14 @@ public abstract class Make_byService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Make_byService.class);
 	
 	
+	// Left side 'CustomerID' of reference [customerRef ]
+	public abstract Dataset<OrderTDO> getOrderTDOListOrderInCustomerRefInOrdersFromMongoSchema(Condition<OrderAttribute> condition, MutableBoolean refilterFlag);
+	
+	// Right side 'ID' of reference [customerRef ]
+	public abstract Dataset<CustomerTDO> getCustomerTDOListClientInCustomerRefInOrdersFromMongoSchema(Condition<CustomerAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
 	
 	public static Dataset<Make_by> fullLeftOuterJoinBetweenMake_byAndOrder(Dataset<Make_by> d1, Dataset<Order> d2) {
 		Dataset<Row> d2_ = d2

@@ -52,6 +52,106 @@ public class ProductServiceImpl extends ProductService {
 	
 	
 	
+	
+	
+	
+	//TODO redis
+	public Dataset<Product> getProductListInStockInfoPairsFromRedisDB(conditions.Condition<conditions.ProductAttribute> condition, MutableBoolean refilterFlag){
+		// Build the key pattern
+		//  - If the condition attribute is in the key pattern, replace by the value. Only if operator is EQUALS.
+		//  - Replace all other fields of key pattern by a '*' 
+		String keypattern= "", keypatternAllVariables="";
+		String valueCond=null;
+		String finalKeypattern;
+		List<String> fieldsListInKey = new ArrayList<>();
+		Set<ProductAttribute> keyAttributes = new HashSet<>();
+		keypattern=keypattern.concat("PRODUCT:");
+		keypatternAllVariables=keypatternAllVariables.concat("PRODUCT:");
+		if(!Util.containsOrCondition(condition)){
+			valueCond=Util.getStringValue(Util.getValueOfAttributeInEqualCondition(condition,ProductAttribute.id));
+			keyAttributes.add(ProductAttribute.id);
+		}
+		else{
+			valueCond=null;
+			refilterFlag.setValue(true);
+		}
+		if(valueCond==null)
+			keypattern=keypattern.concat("*");
+		else
+			keypattern=keypattern.concat(valueCond);
+		fieldsListInKey.add("productid");
+		keypatternAllVariables=keypatternAllVariables.concat("*");
+		keypattern=keypattern.concat(":STOCKINFO");
+		keypatternAllVariables=keypatternAllVariables.concat(":STOCKINFO");
+		if(!refilterFlag.booleanValue()){
+			Set<ProductAttribute> conditionAttributes = Util.getConditionAttributes(condition);
+			for (ProductAttribute a : conditionAttributes) {
+				if (!keyAttributes.contains(a)) {
+					refilterFlag.setValue(true);
+					break;
+				}
+			}
+		}
+	
+			
+		// Find the type of query to perform in order to retrieve a Dataset<Row>
+		// Based on the type of the value. Is a it a simple string or a hash or a list... 
+		Dataset<Row> rows;
+		StructType structType = new StructType(new StructField[] {
+			DataTypes.createStructField("_id", DataTypes.StringType, true), //technical field to store the key.
+			DataTypes.createStructField("UnitsInStock", DataTypes.StringType, true)
+	,		DataTypes.createStructField("UnitsOnOrder", DataTypes.StringType, true)
+		});
+		rows = SparkConnectionMgr.getRowsFromKeyValueHashes("redisDB",keypattern, structType);
+		if(rows == null || rows.isEmpty())
+				return null;
+		boolean isStriped = false;
+		String prefix=isStriped?keypattern.substring(0, keypattern.length() - 1):"";
+		finalKeypattern = keypatternAllVariables;
+		Dataset<Product> res = rows.map((MapFunction<Row, Product>) r -> {
+					Product product_res = new Product();
+					Integer groupindex = null;
+					String regex = null;
+					String value = null;
+					Pattern p, pattern = null;
+					Matcher m, match = null;
+					boolean matches = false;
+					String key = isStriped ? prefix + r.getAs("_id") : r.getAs("_id");
+					// Spark Redis automatically strips leading character if the pattern provided contains a single '*' at the end.				
+					pattern = Pattern.compile("\\*");
+			        match = pattern.matcher(finalKeypattern);
+					regex = finalKeypattern.replaceAll("\\*","(.*)");
+					p = Pattern.compile(regex);
+					m = p.matcher(key);
+					matches = m.find();
+					// attribute [Product.Id]
+					// Attribute mapped in a key.
+					groupindex = fieldsListInKey.indexOf("productid")+1;
+					if(groupindex==null) {
+						logger.warn("Attribute 'Product' mapped physical field 'productid' found in key but can't get index in build keypattern '{}'.", finalKeypattern);
+					}
+					String id = null;
+					if(matches) {
+						id = m.group(groupindex.intValue());
+					} else {
+						logger.warn("Cannot retrieve value for Productid attribute stored in db redisDB. Regex [{}] Value [{}]",regex,value);
+						product_res.addLogEvent("Cannot retrieve value for Product.id attribute stored in db redisDB. Probably due to an ambiguous regex.");
+					}
+					product_res.setId(id == null ? null : Integer.parseInt(id));
+					// attribute [Product.UnitsInStock]
+					Integer unitsInStock = r.getAs("UnitsInStock") == null ? null : Integer.parseInt(r.getAs("UnitsInStock"));
+					product_res.setUnitsInStock(unitsInStock);
+					// attribute [Product.UnitsOnOrder]
+					Integer unitsOnOrder = r.getAs("UnitsOnOrder") == null ? null : Integer.parseInt(r.getAs("UnitsOnOrder"));
+					product_res.setUnitsOnOrder(unitsOnOrder);
+	
+						return product_res;
+				}, Encoders.bean(Product.class));
+		res=res.dropDuplicates(new String[] {"id"});
+		return res;
+		
+	}
+	
 	public static Pair<String, List<String>> getSQLWhereClauseInProductsInfoFromRelData(Condition<ProductAttribute> condition, MutableBoolean refilterFlag) {
 		return getSQLWhereClauseInProductsInfoFromRelDataWithTableAlias(condition, refilterFlag, "");
 	}
@@ -415,106 +515,6 @@ public class ProductServiceImpl extends ProductService {
 	
 	
 	
-	//TODO redis
-	public Dataset<Product> getProductListInStockInfoPairsFromRedisDB(conditions.Condition<conditions.ProductAttribute> condition, MutableBoolean refilterFlag){
-		// Build the key pattern
-		//  - If the condition attribute is in the key pattern, replace by the value. Only if operator is EQUALS.
-		//  - Replace all other fields of key pattern by a '*' 
-		String keypattern= "", keypatternAllVariables="";
-		String valueCond=null;
-		String finalKeypattern;
-		List<String> fieldsListInKey = new ArrayList<>();
-		Set<ProductAttribute> keyAttributes = new HashSet<>();
-		keypattern=keypattern.concat("PRODUCT:");
-		keypatternAllVariables=keypatternAllVariables.concat("PRODUCT:");
-		if(!Util.containsOrCondition(condition)){
-			valueCond=Util.getStringValue(Util.getValueOfAttributeInEqualCondition(condition,ProductAttribute.id));
-			keyAttributes.add(ProductAttribute.id);
-		}
-		else{
-			valueCond=null;
-			refilterFlag.setValue(true);
-		}
-		if(valueCond==null)
-			keypattern=keypattern.concat("*");
-		else
-			keypattern=keypattern.concat(valueCond);
-		fieldsListInKey.add("productid");
-		keypatternAllVariables=keypatternAllVariables.concat("*");
-		keypattern=keypattern.concat(":STOCKINFO");
-		keypatternAllVariables=keypatternAllVariables.concat(":STOCKINFO");
-		if(!refilterFlag.booleanValue()){
-			Set<ProductAttribute> conditionAttributes = Util.getConditionAttributes(condition);
-			for (ProductAttribute a : conditionAttributes) {
-				if (!keyAttributes.contains(a)) {
-					refilterFlag.setValue(true);
-					break;
-				}
-			}
-		}
-	
-			
-		// Find the type of query to perform in order to retrieve a Dataset<Row>
-		// Based on the type of the value. Is a it a simple string or a hash or a list... 
-		Dataset<Row> rows;
-		StructType structType = new StructType(new StructField[] {
-			DataTypes.createStructField("_id", DataTypes.StringType, true), //technical field to store the key.
-			DataTypes.createStructField("UnitsInStock", DataTypes.StringType, true)
-	,		DataTypes.createStructField("UnitsOnOrder", DataTypes.StringType, true)
-		});
-		rows = SparkConnectionMgr.getRowsFromKeyValueHashes("redisDB",keypattern, structType);
-		if(rows == null || rows.isEmpty())
-				return null;
-		boolean isStriped = false;
-		String prefix=isStriped?keypattern.substring(0, keypattern.length() - 1):"";
-		finalKeypattern = keypatternAllVariables;
-		Dataset<Product> res = rows.map((MapFunction<Row, Product>) r -> {
-					Product product_res = new Product();
-					Integer groupindex = null;
-					String regex = null;
-					String value = null;
-					Pattern p, pattern = null;
-					Matcher m, match = null;
-					boolean matches = false;
-					String key = isStriped ? prefix + r.getAs("_id") : r.getAs("_id");
-					// Spark Redis automatically strips leading character if the pattern provided contains a single '*' at the end.				
-					pattern = Pattern.compile("\\*");
-			        match = pattern.matcher(finalKeypattern);
-					regex = finalKeypattern.replaceAll("\\*","(.*)");
-					p = Pattern.compile(regex);
-					m = p.matcher(key);
-					matches = m.find();
-					// attribute [Product.Id]
-					// Attribute mapped in a key.
-					groupindex = fieldsListInKey.indexOf("productid")+1;
-					if(groupindex==null) {
-						logger.warn("Attribute 'Product' mapped physical field 'productid' found in key but can't get index in build keypattern '{}'.", finalKeypattern);
-					}
-					String id = null;
-					if(matches) {
-						id = m.group(groupindex.intValue());
-					} else {
-						logger.warn("Cannot retrieve value for Productid attribute stored in db redisDB. Regex [{}] Value [{}]",regex,value);
-						product_res.addLogEvent("Cannot retrieve value for Product.id attribute stored in db redisDB. Probably due to an ambiguous regex.");
-					}
-					product_res.setId(id == null ? null : Integer.parseInt(id));
-					// attribute [Product.UnitsInStock]
-					Integer unitsInStock = r.getAs("UnitsInStock") == null ? null : Integer.parseInt(r.getAs("UnitsInStock"));
-					product_res.setUnitsInStock(unitsInStock);
-					// attribute [Product.UnitsOnOrder]
-					Integer unitsOnOrder = r.getAs("UnitsOnOrder") == null ? null : Integer.parseInt(r.getAs("UnitsOnOrder"));
-					product_res.setUnitsOnOrder(unitsOnOrder);
-	
-						return product_res;
-				}, Encoders.bean(Product.class));
-		res=res.dropDuplicates(new String[] {"id"});
-		return res;
-		
-	}
-	
-	
-	
-	
 	
 	
 	public Dataset<Product> getProductListInInsert(conditions.Condition<conditions.SupplierAttribute> supplier_condition,conditions.Condition<conditions.ProductAttribute> product_condition)		{
@@ -524,6 +524,41 @@ public class ProductServiceImpl extends ProductService {
 		boolean all_already_persisted = false;
 		MutableBoolean supplier_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
+		// For role 'product' in reference 'supplierR'. A->B Scenario
+		supplier_refilter = new MutableBoolean(false);
+		Dataset<ProductTDO> productTDOsupplierRproduct = insertService.getProductTDOListProductInSupplierRInProductsInfoFromRelSchema(product_condition, product_refilter);
+		Dataset<SupplierTDO> supplierTDOsupplierRsupplier = insertService.getSupplierTDOListSupplierInSupplierRInProductsInfoFromRelSchema(supplier_condition, supplier_refilter);
+		if(supplier_refilter.booleanValue()) {
+			if(all == null)
+				all = new SupplierServiceImpl().getSupplierList(supplier_condition);
+			joinCondition = null;
+			joinCondition = supplierTDOsupplierRsupplier.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				supplierTDOsupplierRsupplier = supplierTDOsupplierRsupplier.as("A").join(all).select("A.*").as(Encoders.bean(SupplierTDO.class));
+			else
+				supplierTDOsupplierRsupplier = supplierTDOsupplierRsupplier.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(SupplierTDO.class));
+		}
+	
+		
+		Dataset<Row> res_supplierR = productTDOsupplierRproduct.join(supplierTDOsupplierRsupplier
+				.withColumnRenamed("id", "Supplier_id")
+				.withColumnRenamed("address", "Supplier_address")
+				.withColumnRenamed("city", "Supplier_city")
+				.withColumnRenamed("companyName", "Supplier_companyName")
+				.withColumnRenamed("contactName", "Supplier_contactName")
+				.withColumnRenamed("contactTitle", "Supplier_contactTitle")
+				.withColumnRenamed("country", "Supplier_country")
+				.withColumnRenamed("fax", "Supplier_fax")
+				.withColumnRenamed("homePage", "Supplier_homePage")
+				.withColumnRenamed("phone", "Supplier_phone")
+				.withColumnRenamed("postalCode", "Supplier_postalCode")
+				.withColumnRenamed("region", "Supplier_region")
+				.withColumnRenamed("logEvents", "Supplier_logEvents"),
+				productTDOsupplierRproduct.col("relSchema_ProductsInfo_supplierR_SupplierRef").equalTo(supplierTDOsupplierRsupplier.col("relSchema_ProductsInfo_supplierR_SupplierID")));
+		Dataset<Product> res_Product_supplierR = res_supplierR.select( "id", "name", "supplierRef", "categoryRef", "quantityPerUnit", "unitPrice", "reorderLevel", "discontinued", "unitsInStock", "unitsOnOrder", "logEvents").as(Encoders.bean(Product.class));
+		
+		res_Product_supplierR = res_Product_supplierR.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Product_supplierR);
 		
 		
 		Dataset<Insert> res_insert_product;
@@ -536,7 +571,115 @@ public class ProductServiceImpl extends ProductService {
 			return null;
 	
 		List<Dataset<Product>> lonelyProductList = new ArrayList<Dataset<Product>>();
-		lonelyProductList.add(getProductListInProductsInfoFromRelData(product_condition, new MutableBoolean(false)));
+		lonelyProductList.add(getProductListInStockInfoPairsFromRedisDB(product_condition, new MutableBoolean(false)));
+		Dataset<Product> lonelyProduct = fullOuterJoinsProduct(lonelyProductList);
+		if(lonelyProduct != null) {
+			res = fullLeftOuterJoinsProduct(Arrays.asList(res, lonelyProduct));
+		}
+		if(product_refilter.booleanValue())
+			res = res.filter((FilterFunction<Product>) r -> product_condition == null || product_condition.evaluate(r));
+		
+	
+		return res;
+		}
+	public Dataset<Product> getProductListInComposed_of(conditions.Condition<conditions.OrderAttribute> order_condition,conditions.Condition<conditions.ProductAttribute> product_condition, conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition)		{
+		MutableBoolean product_refilter = new MutableBoolean(false);
+		List<Dataset<Product>> datasetsPOJO = new ArrayList<Dataset<Product>>();
+		Dataset<Order> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean order_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		// join physical structure A<-AB->B
+		
+		//join between 2 SQL tables and a non-relational structure
+		// (A - AB) (B)
+		order_refilter = new MutableBoolean(false);
+		MutableBoolean composed_of_refilter = new MutableBoolean(false);
+		Dataset<Composed_ofTDO> res_composed_of_productR_orderR = composed_ofService.getComposed_ofTDOListInProductsInfoAndOrder_DetailsFromrelData(product_condition, composed_of_condition, product_refilter, composed_of_refilter);
+		Dataset<OrderTDO> res_orderR_productR = composed_ofService.getOrderTDOListOrderInOrderRInOrdersFromMongoSchema(order_condition, order_refilter);
+		if(order_refilter.booleanValue()) {
+			if(all == null)
+					all = new OrderServiceImpl().getOrderList(order_condition);
+			joinCondition = null;
+				joinCondition = res_orderR_productR.col("id").equalTo(all.col("id"));
+				res_orderR_productR = res_orderR_productR.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(OrderTDO.class));
+		}
+		
+		Dataset<Row> res_row_productR_orderR = res_composed_of_productR_orderR.join(res_orderR_productR.withColumnRenamed("logEvents", "composed_of_logEvents"),
+																														res_composed_of_productR_orderR.col("relSchema_Order_Details_orderR_OrderRef").equalTo(res_orderR_productR.col("relSchema_Order_Details_orderR_OrderID")));																												
+																														
+		Dataset<Product> res_Product_productR = res_row_productR_orderR.select("product.*").as(Encoders.bean(Product.class));
+		datasetsPOJO.add(res_Product_productR.dropDuplicates(new String[] {"id"}));	
+		
+		
+		
+		Dataset<Composed_of> res_composed_of_product;
+		Dataset<Product> res_Product;
+		
+		
+		//Join datasets or return 
+		Dataset<Product> res = fullOuterJoinsProduct(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		List<Dataset<Product>> lonelyProductList = new ArrayList<Dataset<Product>>();
+		lonelyProductList.add(getProductListInStockInfoPairsFromRedisDB(product_condition, new MutableBoolean(false)));
+		Dataset<Product> lonelyProduct = fullOuterJoinsProduct(lonelyProductList);
+		if(lonelyProduct != null) {
+			res = fullLeftOuterJoinsProduct(Arrays.asList(res, lonelyProduct));
+		}
+		if(product_refilter.booleanValue())
+			res = res.filter((FilterFunction<Product>) r -> product_condition == null || product_condition.evaluate(r));
+		
+	
+		return res;
+		}
+	public Dataset<Product> getProductListInBelongs_to(conditions.Condition<conditions.ProductAttribute> product_condition,conditions.Condition<conditions.CategoryAttribute> category_condition)		{
+		MutableBoolean product_refilter = new MutableBoolean(false);
+		List<Dataset<Product>> datasetsPOJO = new ArrayList<Dataset<Product>>();
+		Dataset<Category> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean category_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		// For role 'product' in reference 'categoryR'. A->B Scenario
+		category_refilter = new MutableBoolean(false);
+		Dataset<ProductTDO> productTDOcategoryRproduct = belongs_toService.getProductTDOListProductInCategoryRInProductsInfoFromRelSchema(product_condition, product_refilter);
+		Dataset<CategoryTDO> categoryTDOcategoryRcategory = belongs_toService.getCategoryTDOListCategoryInCategoryRInProductsInfoFromRelSchema(category_condition, category_refilter);
+		if(category_refilter.booleanValue()) {
+			if(all == null)
+				all = new CategoryServiceImpl().getCategoryList(category_condition);
+			joinCondition = null;
+			joinCondition = categoryTDOcategoryRcategory.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				categoryTDOcategoryRcategory = categoryTDOcategoryRcategory.as("A").join(all).select("A.*").as(Encoders.bean(CategoryTDO.class));
+			else
+				categoryTDOcategoryRcategory = categoryTDOcategoryRcategory.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(CategoryTDO.class));
+		}
+	
+		
+		Dataset<Row> res_categoryR = productTDOcategoryRproduct.join(categoryTDOcategoryRcategory
+				.withColumnRenamed("id", "Category_id")
+				.withColumnRenamed("categoryName", "Category_categoryName")
+				.withColumnRenamed("description", "Category_description")
+				.withColumnRenamed("picture", "Category_picture")
+				.withColumnRenamed("logEvents", "Category_logEvents"),
+				productTDOcategoryRproduct.col("relSchema_ProductsInfo_categoryR_CategoryRef").equalTo(categoryTDOcategoryRcategory.col("relSchema_ProductsInfo_categoryR_categoryid")));
+		Dataset<Product> res_Product_categoryR = res_categoryR.select( "id", "name", "supplierRef", "categoryRef", "quantityPerUnit", "unitPrice", "reorderLevel", "discontinued", "unitsInStock", "unitsOnOrder", "logEvents").as(Encoders.bean(Product.class));
+		
+		res_Product_categoryR = res_Product_categoryR.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Product_categoryR);
+		
+		
+		Dataset<Belongs_to> res_belongs_to_product;
+		Dataset<Product> res_Product;
+		
+		
+		//Join datasets or return 
+		Dataset<Product> res = fullOuterJoinsProduct(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		List<Dataset<Product>> lonelyProductList = new ArrayList<Dataset<Product>>();
 		lonelyProductList.add(getProductListInStockInfoPairsFromRedisDB(product_condition, new MutableBoolean(false)));
 		Dataset<Product> lonelyProduct = fullOuterJoinsProduct(lonelyProductList);
 		if(lonelyProduct != null) {
@@ -551,49 +694,19 @@ public class ProductServiceImpl extends ProductService {
 	
 	public boolean insertProduct(
 		Product product,
-		Supplier	supplierInsert){
+		Supplier	supplierInsert,
+		Category	categoryBelongs_to){
 			boolean inserted = false;
 			// Insert in standalone structures
-			inserted = insertProductInProductsInfoFromRelData(product)|| inserted ;
 			inserted = insertProductInStockInfoPairsFromRedisDB(product)|| inserted ;
 			// Insert in structures containing double embedded role
 			// Insert in descending structures
 			// Insert in ascending structures 
 			// Insert in ref structures 
+			inserted = insertProductInProductsInfoFromRelData(product,supplierInsert,categoryBelongs_to)|| inserted ;
 			// Insert in ref structures mapped to opposite role of mandatory role  
 			return inserted;
 		}
-	
-	public boolean insertProductInProductsInfoFromRelData(Product product)	{
-		String idvalue="";
-		idvalue+=product.getId();
-		boolean entityExists = false; // Modify in acceleo code (in 'main.services.insert.entitytype.generateSimpleInsertMethods.mtl') to generate checking before insert
-		if(!entityExists){
-		List<String> columns = new ArrayList<>();
-		List<Object> values = new ArrayList<>();	
-		columns.add("ProductID");
-		values.add(product.getId());
-		columns.add("ProductName");
-		values.add(product.getName());
-		columns.add("SupplierRef");
-		values.add(product.getSupplierRef());
-		columns.add("CategoryRef");
-		values.add(product.getCategoryRef());
-		columns.add("QuantityPerUnit");
-		values.add(product.getQuantityPerUnit());
-		columns.add("UnitPrice");
-		values.add(product.getUnitPrice());
-		columns.add("ReorderLevel");
-		values.add(product.getReorderLevel());
-		columns.add("Discontinued");
-		values.add(product.getDiscontinued());
-		DBConnectionMgr.insertInTable(columns, Arrays.asList(values), "ProductsInfo", "relData");
-			logger.info("Inserted [Product] entity ID [{}] in [ProductsInfo] in database [RelData]", idvalue);
-		}
-		else
-			logger.warn("[Product] entity ID [{}] already present in [ProductsInfo] in database [RelData]", idvalue);
-		return !entityExists;
-	} 
 	
 	public boolean insertProductInStockInfoPairsFromRedisDB(Product product)	{
 		String idvalue="";
@@ -639,17 +752,46 @@ public class ProductServiceImpl extends ProductService {
 		return !entityExists;
 	} 
 	
+	public boolean insertProductInProductsInfoFromRelData(Product product,
+		Supplier	supplierInsert,
+		Category	categoryBelongs_to)	{
+			 // Implement Insert in structures with mandatory references
+			List<String> columns = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
+			List<List<Object>> rows = new ArrayList<>();
+			Object productId;
+		columns.add("ProductID");
+		values.add(product.getId());
+		columns.add("ProductName");
+		values.add(product.getName());
+		columns.add("SupplierRef");
+		values.add(product.getSupplierRef());
+		columns.add("CategoryRef");
+		values.add(product.getCategoryRef());
+		columns.add("QuantityPerUnit");
+		values.add(product.getQuantityPerUnit());
+		columns.add("UnitPrice");
+		values.add(product.getUnitPrice());
+		columns.add("ReorderLevel");
+		values.add(product.getReorderLevel());
+		columns.add("Discontinued");
+		values.add(product.getDiscontinued());
+			// Ref 'categoryR' mapped to role 'product'
+			columns.add("CategoryRef");
+			values.add(categoryBelongs_to.getId());
+			// Ref 'supplierR' mapped to role 'product'
+			columns.add("SupplierRef");
+			values.add(supplierInsert.getId());
+			rows.add(values);
+			DBConnectionMgr.insertInTable(columns, rows, "ProductsInfo", "relData");
+			return true;
+		
+		}
 	private boolean inUpdateMethod = false;
 	private List<Row> allProductIdList = null;
 	public void updateProductList(conditions.Condition<conditions.ProductAttribute> condition, conditions.SetClause<conditions.ProductAttribute> set){
 		inUpdateMethod = true;
 		try {
-			MutableBoolean refilterInProductsInfoFromRelData = new MutableBoolean(false);
-			getSQLWhereClauseInProductsInfoFromRelData(condition, refilterInProductsInfoFromRelData);
-			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
-			if(refilterInProductsInfoFromRelData.booleanValue())
-				updateProductListInProductsInfoFromRelData(condition, set);
-		
 			MutableBoolean refilterInStockInfoPairsFromRedisDB = new MutableBoolean(false);
 			//TODO
 			// one first updates in the structures necessitating to execute a "SELECT *" query to establish the update condition 
@@ -657,8 +799,6 @@ public class ProductServiceImpl extends ProductService {
 				updateProductListInStockInfoPairsFromRedisDB(condition, set);
 		
 	
-			if(!refilterInProductsInfoFromRelData.booleanValue())
-				updateProductListInProductsInfoFromRelData(condition, set);
 			if(!refilterInStockInfoPairsFromRedisDB.booleanValue())
 				updateProductListInStockInfoPairsFromRedisDB(condition, set);
 	
@@ -668,57 +808,6 @@ public class ProductServiceImpl extends ProductService {
 	}
 	
 	
-	public void updateProductListInProductsInfoFromRelData(Condition<ProductAttribute> condition, SetClause<ProductAttribute> set) {
-		List<String> setClause = ProductServiceImpl.getSQLSetClauseInProductsInfoFromRelData(set);
-		String setSQL = null;
-		for(int i = 0; i < setClause.size(); i++) {
-			if(i == 0)
-				setSQL = setClause.get(i);
-			else
-				setSQL += ", " + setClause.get(i);
-		}
-		
-		if(setSQL == null)
-			return;
-		
-		MutableBoolean refilter = new MutableBoolean(false);
-		Pair<String, List<String>> whereClause = ProductServiceImpl.getSQLWhereClauseInProductsInfoFromRelData(condition, refilter);
-		if(!refilter.booleanValue()) {
-			String where = whereClause.getKey();
-			List<String> preparedValues = whereClause.getValue();
-			for(String preparedValue : preparedValues) {
-				where = where.replaceFirst("\\?", preparedValue);
-			}
-			
-			String sql = "UPDATE ProductsInfo SET " + setSQL;
-			if(where != null)
-				sql += " WHERE " + where;
-			
-			DBConnectionMgr.updateInTable(sql, "relData");
-		} else {
-			if(!inUpdateMethod || allProductIdList == null)
-				allProductIdList = this.getProductList(condition).select("id").collectAsList();
-		
-			List<String> updateQueries = new ArrayList<String>();
-			for(Row row : allProductIdList) {
-				Condition<ProductAttribute> conditionId = null;
-				conditionId = Condition.simple(ProductAttribute.id, Operator.EQUALS, row.getAs("id"));
-				whereClause = ProductServiceImpl.getSQLWhereClauseInProductsInfoFromRelData(conditionId, refilter);
-				String sql = "UPDATE ProductsInfo SET " + setSQL;
-				String where = whereClause.getKey();
-				List<String> preparedValues = whereClause.getValue();
-				for(String preparedValue : preparedValues) {
-					where = where.replaceFirst("\\?", preparedValue);
-				}
-				if(where != null)
-					sql += " WHERE " + where;
-				updateQueries.add(sql);
-			}
-		
-			DBConnectionMgr.updatesInTable(updateQueries, "relData");
-		}
-		
-	}
 	public void updateProductListInStockInfoPairsFromRedisDB(Condition<ProductAttribute> condition, SetClause<ProductAttribute> set) {
 		//TODO
 	}
@@ -759,6 +848,72 @@ public class ProductServiceImpl extends ProductService {
 	){
 		updateProductListInInsert(null, product_condition, set);
 	}
+	public void updateProductListInComposed_of(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateProductListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(order_condition, null, null, set);
+	}
+	
+	public void updateProductListInComposed_ofByOrder(
+		pojo.Order order,
+		conditions.SetClause<conditions.ProductAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateProductListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(null, product_condition, null, set);
+	}
+	public void updateProductListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInComposed_of(null, null, composed_of_condition, set);
+	}
+	public void updateProductListInBelongs_to(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateProductListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInBelongs_to(product_condition, null, set);
+	}
+	public void updateProductListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		conditions.SetClause<conditions.ProductAttribute> set
+	){
+		updateProductListInBelongs_to(null, category_condition, set);
+	}
+	
+	public void updateProductListInBelongs_toByCategory(
+		pojo.Category category,
+		conditions.SetClause<conditions.ProductAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 	
 	public void deleteProductList(conditions.Condition<conditions.ProductAttribute> condition){
@@ -793,5 +948,59 @@ public class ProductServiceImpl extends ProductService {
 	){
 		deleteProductListInInsert(null, product_condition);
 	}
+	public void deleteProductListInComposed_of(	
+		conditions.Condition<conditions.OrderAttribute> order_condition,	
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of){
+			//TODO
+		}
+	
+	public void deleteProductListInComposed_ofByOrderCondition(
+		conditions.Condition<conditions.OrderAttribute> order_condition
+	){
+		deleteProductListInComposed_of(order_condition, null, null);
+	}
+	
+	public void deleteProductListInComposed_ofByOrder(
+		pojo.Order order 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteProductListInComposed_ofByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteProductListInComposed_of(null, product_condition, null);
+	}
+	public void deleteProductListInComposed_ofByComposed_ofCondition(
+		conditions.Condition<conditions.Composed_ofAttribute> composed_of_condition
+	){
+		deleteProductListInComposed_of(null, null, composed_of_condition);
+	}
+	public void deleteProductListInBelongs_to(	
+		conditions.Condition<conditions.ProductAttribute> product_condition,	
+		conditions.Condition<conditions.CategoryAttribute> category_condition){
+			//TODO
+		}
+	
+	public void deleteProductListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteProductListInBelongs_to(product_condition, null);
+	}
+	public void deleteProductListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition
+	){
+		deleteProductListInBelongs_to(null, category_condition);
+	}
+	
+	public void deleteProductListInBelongs_toByCategory(
+		pojo.Category category 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
 	
 }

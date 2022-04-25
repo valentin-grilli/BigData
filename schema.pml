@@ -72,7 +72,8 @@ conceptual schema conceptualSchema {
 		region : string, 
 		address : string
 		identifier {
-			id
+			id,
+			contactName
 		}
 	}
 	entity type Order {
@@ -144,28 +145,39 @@ conceptual schema conceptualSchema {
 	}
 	relationship type contains {
 		territory[1]: Territory,
-		region[1-N]: Region
+		region[0-N]: Region
 	}
 	relationship type are_in {
-		employee[1-N]: Employee,
-		territory[1-N]: Territory 
+		employee[0-N]: Employee,
+		territory[0-N]: Territory 
 	}
 	relationship type report_to {
 		lowerEmployee[0-1]: Employee,
 		higherEmployee[0-N]: Employee
 	}
 	relationship type ship_via {
-		shipper[1-N]: Shipper,
+		shipper[0-N]: Shipper,
 		order[1]: Order
 	}
 	relationship type handle {
-		employee[1-N]: Employee,
+		employee[0-N]: Employee,
 		order[1]: Order
 	}
 	relationship type insert {
-		supplier[1-N]: Supplier,
+		supplier[0-N]: Supplier,
 		product[1]: Product
 		
+	}
+	relationship type composed_of {
+		order[0-N]: Order,
+		product[0-N]: Product,
+		unitPrice: float,
+		quantity: int,
+		discount: float
+	}
+	relationship type belongs_to {
+		product[1]: Product,
+		category[0-N]: Category
 	}
 }
 //Physical schema
@@ -205,6 +217,23 @@ physical schemas {
 				UnitPrice,
 				ReorderLevel,
 				Discontinued
+			}
+			references {
+				categoryR: CategoryRef -> kv.categoryPairs.categoryid
+				supplierR: SupplierRef -> mongoSchema.Suppliers.SupplierID
+			}
+		}
+		table Order_Details {
+			columns {
+				OrderRef,
+				ProductRef,
+				UnitPrice,
+				Quantity,
+				Discount
+			}
+			references {
+				orderR: OrderRef -> mongoSchema.Orders.OrderID
+				productR: ProductRef -> ProductsInfo.ProductID
 			}
 		}
 	
@@ -255,6 +284,9 @@ physical schemas {
 					}
 				}
 			}
+			references {
+				reportToRef: ReportsTo -> mongoSchema.Employees.EmployeeID
+			}
 		}
 		collection Orders {
 			fields {
@@ -277,7 +309,9 @@ physical schemas {
 				}
 			}
 			references {
-				empOrder: EmployeeRef -> Employees.EmployeeID
+				customerRef: customer.CustomerID -> mongoSchema.Customers.ID
+				shipperRef: ShipVia -> relSchema.Shippers.ShipperID
+				employeeRef: EmployeeRef -> mongoSchema.Employees.EmployeeID
 			}
 		}
 		collection Suppliers {
@@ -321,15 +355,43 @@ mapping rules {
 	
 	//Customer
 	conceptualSchema.Customer(id, city, companyName, contactName, contactTitle, country, fax, phone, postalCode, region, address) -> mongoSchema.Customers(ID, City, CompanyName, ContactName, ContactTitle, Country, Fax, Phone, PostalCode, Region, Address),
-	conceptualSchema.Customer(id, companyName) -> mongoSchema.Orders.customer(CustomerID, ContactName),
-		
 	//Order
-	conceptualSchema.Order(id, freight, orderDate, requiredDate, shipAddress, shipCity, shipCountry, shipName, shipPostalCode, shipRegion, shippedDate) -> mongoSchema.Orders(OrderID, Freight, OrderDate, RequiredDate, ShipAddress, ShipCity, ShipCountry, ShipName, ShipPostalCode, ShipRegion, ShippedDate),
+	conceptualSchema.Order(id, freight, orderDate, requiredDate, shipAddress, shipCity, shipCountry, shipName, shipPostalCode, shipRegion, shippedDate) 
+	-> mongoSchema.Orders(OrderID, Freight, OrderDate, RequiredDate, ShipAddress, ShipCity, ShipCountry, ShipName, ShipPostalCode, ShipRegion, ShippedDate),
 	
 	//Supplier
 	conceptualSchema.Supplier(id, address, city, companyName, contactName, contactTitle, country, fax, homePage, phone, postalCode, region) 
-	-> mongoSchema.Suppliers(SupplierID, Address, City, CompanyName, contactName, ContactTitle, Country, Fax, HomePage, Phone, PostalCode, Region)
-	//Employee -> Order
-	//conceptualSchema.handle.order -> mongoSchema.Orders.empOrder
+	-> mongoSchema.Suppliers(SupplierID, Address, City, CompanyName, contactName, ContactTitle, Country, Fax, HomePage, Phone, PostalCode, Region),
+	
+	//OrderDetails map
+	conceptualSchema.composed_of.order -> relSchema.Order_Details.orderR,
+	conceptualSchema.composed_of.product -> relSchema.Order_Details.productR,
+	rel: conceptualSchema.composed_of(unitPrice, quantity, discount) -> relSchema.Order_Details(UnitPrice, Quantity, Discount),
+	
+	
+	//Link Employee and territory
+	conceptualSchema.are_in.employee -> mongoSchema.Employees.territories(),
+	
+	//Link Territory and Region
+	conceptualSchema.contains.territory -> mongoSchema.Employees.territories.region(),
+	
+	//Link higher and lower employee
+	conceptualSchema.report_to.lowerEmployee -> mongoSchema.Employees.reportToRef,
+	
+	//Link order and customer
+	conceptualSchema.make_by.order -> mongoSchema.Orders.customerRef,
+	
+	//link category and Product
+	conceptualSchema.belongs_to.product -> relSchema.ProductsInfo.categoryR,
+	
+	//Link supplier and product
+	conceptualSchema.insert.product -> relSchema.ProductsInfo.supplierR,
+	
+	//Link shipper and Order
+	conceptualSchema.ship_via.order -> mongoSchema.Orders.shipperRef,
+	
+	//link Order and Employee
+	conceptualSchema.handle.order -> mongoSchema.Orders.employeeRef
+	
 	
 }

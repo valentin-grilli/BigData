@@ -22,6 +22,14 @@ public abstract class Report_toService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Report_toService.class);
 	
 	
+	// Left side 'ReportsTo' of reference [reportToRef ]
+	public abstract Dataset<EmployeeTDO> getEmployeeTDOListLowerEmployeeInReportToRefInEmployeesFromMongoSchema(Condition<EmployeeAttribute> condition, MutableBoolean refilterFlag);
+	
+	// Right side 'EmployeeID' of reference [reportToRef ]
+	public abstract Dataset<EmployeeTDO> getEmployeeTDOListHigherEmployeeInReportToRefInEmployeesFromMongoSchema(Condition<EmployeeAttribute> condition, MutableBoolean refilterFlag);
+	
+	
+	
 	
 	public static Dataset<Report_to> fullLeftOuterJoinBetweenReport_toAndLowerEmployee(Dataset<Report_to> d1, Dataset<Employee> d2) {
 		Dataset<Row> d2_ = d2
@@ -1032,6 +1040,7 @@ public abstract class Report_toService {
 	
 	
 	
+	public 	abstract boolean insertReport_toInRefStructEmployeesInMyMongoDB(Report_to report_to);
 	
 	 public void insertReport_to(Employee lowerEmployee ,Employee higherEmployee ){
 		Report_to report_to = new Report_to();

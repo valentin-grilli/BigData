@@ -159,6 +159,61 @@ public class CategoryServiceImpl extends CategoryService {
 	
 	
 	
+	public Dataset<Category> getCategoryListInBelongs_to(conditions.Condition<conditions.ProductAttribute> product_condition,conditions.Condition<conditions.CategoryAttribute> category_condition)		{
+		MutableBoolean category_refilter = new MutableBoolean(false);
+		List<Dataset<Category>> datasetsPOJO = new ArrayList<Dataset<Category>>();
+		Dataset<Product> all = null;
+		boolean all_already_persisted = false;
+		MutableBoolean product_refilter;
+		org.apache.spark.sql.Column joinCondition = null;
+		
+		product_refilter = new MutableBoolean(false);
+		// For role 'product' in reference 'categoryR'  B->A Scenario
+		Dataset<ProductTDO> productTDOcategoryRproduct = belongs_toService.getProductTDOListProductInCategoryRInProductsInfoFromRelSchema(product_condition, product_refilter);
+		Dataset<CategoryTDO> categoryTDOcategoryRcategory = belongs_toService.getCategoryTDOListCategoryInCategoryRInProductsInfoFromRelSchema(category_condition, category_refilter);
+		if(product_refilter.booleanValue()) {
+			if(all == null)
+				all = new ProductServiceImpl().getProductList(product_condition);
+			joinCondition = null;
+			joinCondition = productTDOcategoryRproduct.col("id").equalTo(all.col("id"));
+			if(joinCondition == null)
+				productTDOcategoryRproduct = productTDOcategoryRproduct.as("A").join(all).select("A.*").as(Encoders.bean(ProductTDO.class));
+			else
+				productTDOcategoryRproduct = productTDOcategoryRproduct.as("A").join(all, joinCondition).select("A.*").as(Encoders.bean(ProductTDO.class));
+		}
+		Dataset<Row> res_categoryR = 
+			categoryTDOcategoryRcategory.join(productTDOcategoryRproduct
+				.withColumnRenamed("id", "Product_id")
+				.withColumnRenamed("name", "Product_name")
+				.withColumnRenamed("supplierRef", "Product_supplierRef")
+				.withColumnRenamed("categoryRef", "Product_categoryRef")
+				.withColumnRenamed("quantityPerUnit", "Product_quantityPerUnit")
+				.withColumnRenamed("unitPrice", "Product_unitPrice")
+				.withColumnRenamed("reorderLevel", "Product_reorderLevel")
+				.withColumnRenamed("discontinued", "Product_discontinued")
+				.withColumnRenamed("unitsInStock", "Product_unitsInStock")
+				.withColumnRenamed("unitsOnOrder", "Product_unitsOnOrder")
+				.withColumnRenamed("logEvents", "Product_logEvents"),
+				categoryTDOcategoryRcategory.col("relSchema_ProductsInfo_categoryR_categoryid").equalTo(productTDOcategoryRproduct.col("relSchema_ProductsInfo_categoryR_CategoryRef")));
+		Dataset<Category> res_Category_categoryR = res_categoryR.select( "id", "categoryName", "description", "picture", "logEvents").as(Encoders.bean(Category.class));
+		res_Category_categoryR = res_Category_categoryR.dropDuplicates(new String[] {"id"});
+		datasetsPOJO.add(res_Category_categoryR);
+		
+		Dataset<Belongs_to> res_belongs_to_category;
+		Dataset<Category> res_Category;
+		
+		
+		//Join datasets or return 
+		Dataset<Category> res = fullOuterJoinsCategory(datasetsPOJO);
+		if(res == null)
+			return null;
+	
+		if(category_refilter.booleanValue())
+			res = res.filter((FilterFunction<Category>) r -> category_condition == null || category_condition.evaluate(r));
+		
+	
+		return res;
+		}
 	
 	
 	public boolean insertCategory(Category category){
@@ -252,6 +307,36 @@ public class CategoryServiceImpl extends CategoryService {
 		//TODO using the id
 		return;
 	}
+	public void updateCategoryListInBelongs_to(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		
+		conditions.SetClause<conditions.CategoryAttribute> set
+	){
+		//TODO
+	}
+	
+	public void updateCategoryListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition,
+		conditions.SetClause<conditions.CategoryAttribute> set
+	){
+		updateCategoryListInBelongs_to(product_condition, null, set);
+	}
+	
+	public void updateCategoryInBelongs_toByProduct(
+		pojo.Product product,
+		conditions.SetClause<conditions.CategoryAttribute> set 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void updateCategoryListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition,
+		conditions.SetClause<conditions.CategoryAttribute> set
+	){
+		updateCategoryListInBelongs_to(null, category_condition, set);
+	}
 	
 	
 	public void deleteCategoryList(conditions.Condition<conditions.CategoryAttribute> condition){
@@ -261,6 +346,30 @@ public class CategoryServiceImpl extends CategoryService {
 	public void deleteCategory(pojo.Category category) {
 		//TODO using the id
 		return;
+	}
+	public void deleteCategoryListInBelongs_to(	
+		conditions.Condition<conditions.ProductAttribute> product_condition,	
+		conditions.Condition<conditions.CategoryAttribute> category_condition){
+			//TODO
+		}
+	
+	public void deleteCategoryListInBelongs_toByProductCondition(
+		conditions.Condition<conditions.ProductAttribute> product_condition
+	){
+		deleteCategoryListInBelongs_to(product_condition, null);
+	}
+	
+	public void deleteCategoryInBelongs_toByProduct(
+		pojo.Product product 
+	){
+		//TODO get id in condition
+		return;	
+	}
+	
+	public void deleteCategoryListInBelongs_toByCategoryCondition(
+		conditions.Condition<conditions.CategoryAttribute> category_condition
+	){
+		deleteCategoryListInBelongs_to(null, category_condition);
 	}
 	
 }

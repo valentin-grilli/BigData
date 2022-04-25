@@ -30,6 +30,7 @@ public class Order extends LoggingPojo {
 		order
 	}
 	private Employee employee;
+	private List<Composed_of> composed_ofListAsOrder;
 
 	// Empty constructor
 	public Order() {}
@@ -70,6 +71,7 @@ public class Order extends LoggingPojo {
 	Objects.equals(client, Order.client) &&
 	Objects.equals(shipper, Order.shipper) &&
 	Objects.equals(employee, Order.employee) &&
+	Objects.equals(composed_ofListAsOrder,Order.composed_ofListAsOrder) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
@@ -189,5 +191,12 @@ public class Order extends LoggingPojo {
 
 	public void _setEmployee(Employee employee) {
 		this.employee = employee;
+	}
+	public java.util.List<Composed_of> _getComposed_ofListAsOrder() {
+		return composed_ofListAsOrder;
+	}
+
+	public void _setComposed_ofListAsOrder(java.util.List<Composed_of> composed_ofListAsOrder) {
+		this.composed_ofListAsOrder = composed_ofListAsOrder;
 	}
 }
