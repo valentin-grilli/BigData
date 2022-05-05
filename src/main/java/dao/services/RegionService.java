@@ -17,22 +17,22 @@ import conditions.Condition;
 import conditions.Operator;
 import util.Util;
 import conditions.RegionAttribute;
-import pojo.Contains;
-import conditions.TerritoryAttribute;
-import pojo.Territory;
+import pojo.LocatedIn;
+import conditions.TerritoriesAttribute;
+import pojo.Territories;
 
 public abstract class RegionService {
 	static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RegionService.class);
-	protected ContainsService containsService = new dao.impl.ContainsServiceImpl();
+	protected LocatedInService locatedInService = new dao.impl.LocatedInServiceImpl();
 	
 
 
 	public static enum ROLE_NAME {
-		CONTAINS_REGION
+		LOCATEDIN_REGION
 	}
 	private static java.util.Map<ROLE_NAME, loading.Loading> defaultLoadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
 	static {
-		defaultLoadingParameters.put(ROLE_NAME.CONTAINS_REGION, loading.Loading.LAZY);
+		defaultLoadingParameters.put(ROLE_NAME.LOCATEDIN_REGION, loading.Loading.LAZY);
 	}
 	
 	private java.util.Map<ROLE_NAME, loading.Loading> loadingParameters = new java.util.HashMap<ROLE_NAME, loading.Loading>();
@@ -97,7 +97,7 @@ public abstract class RegionService {
 		}
 		if(refilterFlag.booleanValue())
 			d = d.filter((FilterFunction<Region>) r -> condition == null || condition.evaluate(r));
-		d = d.dropDuplicates(new String[] {"id"});
+		d = d.dropDuplicates(new String[] {"regionID"});
 		return d;
 	}
 	
@@ -108,21 +108,21 @@ public abstract class RegionService {
 	public abstract Dataset<Region> getRegionListInEmployeesFromMyMongoDB(conditions.Condition<conditions.RegionAttribute> condition, MutableBoolean refilterFlag);
 	
 	
-	public Region getRegionById(Integer id){
+	public Region getRegionById(Integer regionID){
 		Condition cond;
-		cond = Condition.simple(RegionAttribute.id, conditions.Operator.EQUALS, id);
+		cond = Condition.simple(RegionAttribute.regionID, conditions.Operator.EQUALS, regionID);
 		Dataset<Region> res = getRegionList(cond);
 		if(res!=null && !res.isEmpty())
 			return res.first();
 		return null;
 	}
 	
-	public Dataset<Region> getRegionListById(Integer id) {
-		return getRegionList(conditions.Condition.simple(conditions.RegionAttribute.id, conditions.Operator.EQUALS, id));
+	public Dataset<Region> getRegionListByRegionID(Integer regionID) {
+		return getRegionList(conditions.Condition.simple(conditions.RegionAttribute.regionID, conditions.Operator.EQUALS, regionID));
 	}
 	
-	public Dataset<Region> getRegionListByDescription(String description) {
-		return getRegionList(conditions.Condition.simple(conditions.RegionAttribute.description, conditions.Operator.EQUALS, description));
+	public Dataset<Region> getRegionListByRegionDescription(String regionDescription) {
+		return getRegionList(conditions.Condition.simple(conditions.RegionAttribute.regionDescription, conditions.Operator.EQUALS, regionDescription));
 	}
 	
 	
@@ -142,16 +142,16 @@ public abstract class RegionService {
 			return datasetsPOJO.get(0);
 		Dataset<Region> d = datasetsPOJO.get(0);
 			List<String> idFields = new ArrayList<String>();
-			idFields.add("id");
+			idFields.add("regionID");
 			logger.debug("Start {} of [{}] datasets of [Region] objects",joinMode,datasetsPOJO.size());
 			scala.collection.Seq<String> seq = scala.collection.JavaConverters.asScalaIteratorConverter(idFields.iterator()).asScala().toSeq();
 			Dataset<Row> res = d.join(datasetsPOJO.get(1)
-								.withColumnRenamed("description", "description_1")
+								.withColumnRenamed("regionDescription", "regionDescription_1")
 								.withColumnRenamed("logEvents", "logEvents_1")
 							, seq, joinMode);
 			for(int i = 2; i < datasetsPOJO.size(); i++) {
 				res = res.join(datasetsPOJO.get(i)
-								.withColumnRenamed("description", "description_" + i)
+								.withColumnRenamed("regionDescription", "regionDescription_" + i)
 								.withColumnRenamed("logEvents", "logEvents_" + i)
 						, seq, joinMode);
 			}
@@ -160,23 +160,23 @@ public abstract class RegionService {
 			d = res.map((MapFunction<Row, Region>) r -> {
 					Region region_res = new Region();
 					
-					// attribute 'Region.id'
-					Integer firstNotNull_id = Util.getIntegerValue(r.getAs("id"));
-					region_res.setId(firstNotNull_id);
+					// attribute 'Region.regionID'
+					Integer firstNotNull_regionID = Util.getIntegerValue(r.getAs("regionID"));
+					region_res.setRegionID(firstNotNull_regionID);
 					
-					// attribute 'Region.description'
-					String firstNotNull_description = Util.getStringValue(r.getAs("description"));
+					// attribute 'Region.regionDescription'
+					String firstNotNull_regionDescription = Util.getStringValue(r.getAs("regionDescription"));
 					for (int i = 1; i < datasetsPOJO.size(); i++) {
-						String description2 = Util.getStringValue(r.getAs("description_" + i));
-						if (firstNotNull_description != null && description2 != null && !firstNotNull_description.equals(description2)) {
-							region_res.addLogEvent("Data consistency problem for [Region - id :"+region_res.getId()+"]: different values found for attribute 'Region.description': " + firstNotNull_description + " and " + description2 + "." );
-							logger.warn("Data consistency problem for [Region - id :"+region_res.getId()+"]: different values found for attribute 'Region.description': " + firstNotNull_description + " and " + description2 + "." );
+						String regionDescription2 = Util.getStringValue(r.getAs("regionDescription_" + i));
+						if (firstNotNull_regionDescription != null && regionDescription2 != null && !firstNotNull_regionDescription.equals(regionDescription2)) {
+							region_res.addLogEvent("Data consistency problem for [Region - id :"+region_res.getRegionID()+"]: different values found for attribute 'Region.regionDescription': " + firstNotNull_regionDescription + " and " + regionDescription2 + "." );
+							logger.warn("Data consistency problem for [Region - id :"+region_res.getRegionID()+"]: different values found for attribute 'Region.regionDescription': " + firstNotNull_regionDescription + " and " + regionDescription2 + "." );
 						}
-						if (firstNotNull_description == null && description2 != null) {
-							firstNotNull_description = description2;
+						if (firstNotNull_regionDescription == null && regionDescription2 != null) {
+							firstNotNull_regionDescription = regionDescription2;
 						}
 					}
-					region_res.setDescription(firstNotNull_description);
+					region_res.setRegionDescription(firstNotNull_regionDescription);
 	
 					WrappedArray logEvents = r.getAs("logEvents");
 					if(logEvents != null)
@@ -198,27 +198,26 @@ public abstract class RegionService {
 	}
 	
 	
-	
-	public Region getRegion(Region.contains role, Territory territory) {
+	public Region getRegion(Region.locatedIn role, Territories territories) {
 		if(role != null) {
-			if(role.equals(Region.contains.region))
-				return getRegionInContainsByTerritory(territory);
+			if(role.equals(Region.locatedIn.region))
+				return getRegionInLocatedInByTerritories(territories);
 		}
 		return null;
 	}
 	
-	public Dataset<Region> getRegionList(Region.contains role, Condition<TerritoryAttribute> condition) {
+	public Dataset<Region> getRegionList(Region.locatedIn role, Condition<TerritoriesAttribute> condition) {
 		if(role != null) {
-			if(role.equals(Region.contains.region))
-				return getRegionListInContainsByTerritoryCondition(condition);
+			if(role.equals(Region.locatedIn.region))
+				return getRegionListInLocatedInByTerritoriesCondition(condition);
 		}
 		return null;
 	}
 	
-	public Dataset<Region> getRegionList(Region.contains role, Condition<TerritoryAttribute> condition1, Condition<RegionAttribute> condition2) {
+	public Dataset<Region> getRegionList(Region.locatedIn role, Condition<TerritoriesAttribute> condition1, Condition<RegionAttribute> condition2) {
 		if(role != null) {
-			if(role.equals(Region.contains.region))
-				return getRegionListInContains(condition1, condition2);
+			if(role.equals(Region.locatedIn.region))
+				return getRegionListInLocatedIn(condition1, condition2);
 		}
 		return null;
 	}
@@ -233,24 +232,25 @@ public abstract class RegionService {
 	
 	
 	
-	public abstract Dataset<Region> getRegionListInContains(conditions.Condition<conditions.TerritoryAttribute> territory_condition,conditions.Condition<conditions.RegionAttribute> region_condition);
 	
-	public Dataset<Region> getRegionListInContainsByTerritoryCondition(conditions.Condition<conditions.TerritoryAttribute> territory_condition){
-		return getRegionListInContains(territory_condition, null);
+	public abstract Dataset<Region> getRegionListInLocatedIn(conditions.Condition<conditions.TerritoriesAttribute> territories_condition,conditions.Condition<conditions.RegionAttribute> region_condition);
+	
+	public Dataset<Region> getRegionListInLocatedInByTerritoriesCondition(conditions.Condition<conditions.TerritoriesAttribute> territories_condition){
+		return getRegionListInLocatedIn(territories_condition, null);
 	}
 	
-	public Region getRegionInContainsByTerritory(pojo.Territory territory){
-		if(territory == null)
+	public Region getRegionInLocatedInByTerritories(pojo.Territories territories){
+		if(territories == null)
 			return null;
 	
 		Condition c;
-		c=Condition.simple(TerritoryAttribute.id,Operator.EQUALS, territory.getId());
-		Dataset<Region> res = getRegionListInContainsByTerritoryCondition(c);
+		c=Condition.simple(TerritoriesAttribute.territoryID,Operator.EQUALS, territories.getTerritoryID());
+		Dataset<Region> res = getRegionListInLocatedInByTerritoriesCondition(c);
 		return !res.isEmpty()?res.first():null;
 	}
 	
-	public Dataset<Region> getRegionListInContainsByRegionCondition(conditions.Condition<conditions.RegionAttribute> region_condition){
-		return getRegionListInContains(null, region_condition);
+	public Dataset<Region> getRegionListInLocatedInByRegionCondition(conditions.Condition<conditions.RegionAttribute> region_condition){
+		return getRegionListInLocatedIn(null, region_condition);
 	}
 	
 	
@@ -264,33 +264,33 @@ public abstract class RegionService {
 		//TODO using the id
 		return;
 	}
-	public abstract void updateRegionListInContains(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,
+	public abstract void updateRegionListInLocatedIn(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,
 		conditions.Condition<conditions.RegionAttribute> region_condition,
 		
 		conditions.SetClause<conditions.RegionAttribute> set
 	);
 	
-	public void updateRegionListInContainsByTerritoryCondition(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,
+	public void updateRegionListInLocatedInByTerritoriesCondition(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,
 		conditions.SetClause<conditions.RegionAttribute> set
 	){
-		updateRegionListInContains(territory_condition, null, set);
+		updateRegionListInLocatedIn(territories_condition, null, set);
 	}
 	
-	public void updateRegionInContainsByTerritory(
-		pojo.Territory territory,
+	public void updateRegionInLocatedInByTerritories(
+		pojo.Territories territories,
 		conditions.SetClause<conditions.RegionAttribute> set 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
-	public void updateRegionListInContainsByRegionCondition(
+	public void updateRegionListInLocatedInByRegionCondition(
 		conditions.Condition<conditions.RegionAttribute> region_condition,
 		conditions.SetClause<conditions.RegionAttribute> set
 	){
-		updateRegionListInContains(null, region_condition, set);
+		updateRegionListInLocatedIn(null, region_condition, set);
 	}
 	
 	
@@ -300,27 +300,27 @@ public abstract class RegionService {
 		//TODO using the id
 		return;
 	}
-	public abstract void deleteRegionListInContains(	
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,	
+	public abstract void deleteRegionListInLocatedIn(	
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,	
 		conditions.Condition<conditions.RegionAttribute> region_condition);
 	
-	public void deleteRegionListInContainsByTerritoryCondition(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition
+	public void deleteRegionListInLocatedInByTerritoriesCondition(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition
 	){
-		deleteRegionListInContains(territory_condition, null);
+		deleteRegionListInLocatedIn(territories_condition, null);
 	}
 	
-	public void deleteRegionInContainsByTerritory(
-		pojo.Territory territory 
+	public void deleteRegionInLocatedInByTerritories(
+		pojo.Territories territories 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
-	public void deleteRegionListInContainsByRegionCondition(
+	public void deleteRegionListInLocatedInByRegionCondition(
 		conditions.Condition<conditions.RegionAttribute> region_condition
 	){
-		deleteRegionListInContains(null, region_condition);
+		deleteRegionListInLocatedIn(null, region_condition);
 	}
 	
 }

@@ -6,27 +6,27 @@ import java.util.Objects;
 
 public class Region extends LoggingPojo {
 
-	private Integer id;
-	private String description;
+	private Integer regionID;
+	private String regionDescription;
 
-	public enum contains {
+	public enum locatedIn {
 		region
 	}
-	private List<Territory> territoryList;
+	private List<Territories> territoriesList;
 
 	// Empty constructor
 	public Region() {}
 
 	// Constructor on Identifier
-	public Region(Integer id){
-		this.id = id;
+	public Region(Integer regionID){
+		this.regionID = regionID;
 	}
 	/*
 	* Constructor on simple attribute 
 	*/
-	public Region(Integer id,String description) {
-		this.id = id;
-		this.description = description;
+	public Region(Integer regionID,String regionDescription) {
+		this.regionID = regionID;
+		this.regionDescription = regionDescription;
 	}
 	@Override
     public Object clone() throws CloneNotSupportedException {
@@ -38,42 +38,42 @@ public class Region extends LoggingPojo {
 		if(this==o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		Region Region = (Region) o;
-		boolean eqSimpleAttr = Objects.equals(id,Region.id) && Objects.equals(description,Region.description);
+		boolean eqSimpleAttr = Objects.equals(regionID,Region.regionID) && Objects.equals(regionDescription,Region.regionDescription);
 		boolean eqComplexAttr = false;
 		eqComplexAttr = true && 
-	Objects.equals(territoryList, Region.territoryList) &&
+	Objects.equals(territoriesList, Region.territoriesList) &&
  true;
 		return eqSimpleAttr && eqComplexAttr;
 	}
 	
 	@Override
 	public String toString(){
-		return "Region { " + "id="+id +", "+
-					"description="+description +"}"; 
+		return "Region { " + "regionID="+regionID +", "+
+					"regionDescription="+regionDescription +"}"; 
 	}
 	
-	public Integer getId() {
-		return id;
+	public Integer getRegionID() {
+		return regionID;
 	}
 
-	public void setId(Integer id) {
-		this.id = id;
+	public void setRegionID(Integer regionID) {
+		this.regionID = regionID;
 	}
-	public String getDescription() {
-		return description;
+	public String getRegionDescription() {
+		return regionDescription;
 	}
 
-	public void setDescription(String description) {
-		this.description = description;
+	public void setRegionDescription(String regionDescription) {
+		this.regionDescription = regionDescription;
 	}
 
 	
 
-	public List<Territory> _getTerritoryList() {
-		return territoryList;
+	public List<Territories> _getTerritoriesList() {
+		return territoriesList;
 	}
 
-	public void _setTerritoryList(List<Territory> territoryList) {
-		this.territoryList = territoryList;
+	public void _setTerritoriesList(List<Territories> territoriesList) {
+		this.territoriesList = territoriesList;
 	}
 }

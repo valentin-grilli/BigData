@@ -23,9 +23,9 @@ public class DBCredentials {
     }
 	
 	static {
-			dbPorts.put("relData", new DBCredentials("reldata", "localhost", 3399, "root", "password","mysql"));
+			dbPorts.put("myRelDB", new DBCredentials("reldata", "localhost", 3399, "root", "password","mysql"));
 			dbPorts.put("myMongoDB", new DBCredentials("myMongoDB", "localhost", 27777, "", "","mongodb"));
-			dbPorts.put("redisDB", new DBCredentials("", "localhost", 6666, "", "","redis"));
+			dbPorts.put("myRedisDB", new DBCredentials("", "localhost", 6666, "", "","redis"));
 	}
 
 	public static Map<String, DBCredentials> getDbPorts() {

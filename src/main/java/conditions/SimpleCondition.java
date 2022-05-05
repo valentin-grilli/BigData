@@ -55,249 +55,245 @@ public class SimpleCondition<E> extends Condition<E> {
 
 	@Override
 	public boolean evaluate(IPojo obj) {
-		if(obj instanceof Shipper)
-			return evaluateShipper((Shipper) obj);
-		if(obj instanceof Product)
-			return evaluateProduct((Product) obj);
-		if(obj instanceof Supplier)
-			return evaluateSupplier((Supplier) obj);
-		if(obj instanceof Customer)
-			return evaluateCustomer((Customer) obj);
-		if(obj instanceof Order)
-			return evaluateOrder((Order) obj);
-		if(obj instanceof Category)
-			return evaluateCategory((Category) obj);
-		if(obj instanceof Employee)
-			return evaluateEmployee((Employee) obj);
+		if(obj instanceof Orders)
+			return evaluateOrders((Orders) obj);
+		if(obj instanceof Products)
+			return evaluateProducts((Products) obj);
+		if(obj instanceof Suppliers)
+			return evaluateSuppliers((Suppliers) obj);
+		if(obj instanceof Customers)
+			return evaluateCustomers((Customers) obj);
+		if(obj instanceof Categories)
+			return evaluateCategories((Categories) obj);
+		if(obj instanceof Shippers)
+			return evaluateShippers((Shippers) obj);
+		if(obj instanceof Employees)
+			return evaluateEmployees((Employees) obj);
 		if(obj instanceof Region)
 			return evaluateRegion((Region) obj);
-		if(obj instanceof Territory)
-			return evaluateTerritory((Territory) obj);
-		if(obj instanceof Composed_of)
-			return evaluateComposed_of((Composed_of) obj);
+		if(obj instanceof Territories)
+			return evaluateTerritories((Territories) obj);
+		if(obj instanceof ComposedOf)
+			return evaluateComposedOf((ComposedOf) obj);
 		return true;
 	}
 
 
-	private boolean evaluateShipper(Shipper obj) {
+	private boolean evaluateOrders(Orders obj) {
 		if(obj == null)
 			return false;
 		if(this.operator == null)
 			return true;
 
-		ShipperAttribute attr = (ShipperAttribute) this.attribute;
+		OrdersAttribute attr = (OrdersAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == ShipperAttribute.id)
+		if(attr == OrdersAttribute.id)
 			objectValue = obj.getId();
-		if(attr == ShipperAttribute.companyName)
-			objectValue = obj.getCompanyName();
-		if(attr == ShipperAttribute.phone)
-			objectValue = obj.getPhone();
-
-		return operator.evaluate(objectValue, this.getValue());
-	}
-	private boolean evaluateProduct(Product obj) {
-		if(obj == null)
-			return false;
-		if(this.operator == null)
-			return true;
-
-		ProductAttribute attr = (ProductAttribute) this.attribute;
-		Object objectValue = null;
-
-		if(attr == ProductAttribute.id)
-			objectValue = obj.getId();
-		if(attr == ProductAttribute.name)
-			objectValue = obj.getName();
-		if(attr == ProductAttribute.supplierRef)
-			objectValue = obj.getSupplierRef();
-		if(attr == ProductAttribute.categoryRef)
-			objectValue = obj.getCategoryRef();
-		if(attr == ProductAttribute.quantityPerUnit)
-			objectValue = obj.getQuantityPerUnit();
-		if(attr == ProductAttribute.unitPrice)
-			objectValue = obj.getUnitPrice();
-		if(attr == ProductAttribute.reorderLevel)
-			objectValue = obj.getReorderLevel();
-		if(attr == ProductAttribute.discontinued)
-			objectValue = obj.getDiscontinued();
-		if(attr == ProductAttribute.unitsInStock)
-			objectValue = obj.getUnitsInStock();
-		if(attr == ProductAttribute.unitsOnOrder)
-			objectValue = obj.getUnitsOnOrder();
-
-		return operator.evaluate(objectValue, this.getValue());
-	}
-	private boolean evaluateSupplier(Supplier obj) {
-		if(obj == null)
-			return false;
-		if(this.operator == null)
-			return true;
-
-		SupplierAttribute attr = (SupplierAttribute) this.attribute;
-		Object objectValue = null;
-
-		if(attr == SupplierAttribute.id)
-			objectValue = obj.getId();
-		if(attr == SupplierAttribute.address)
-			objectValue = obj.getAddress();
-		if(attr == SupplierAttribute.city)
-			objectValue = obj.getCity();
-		if(attr == SupplierAttribute.companyName)
-			objectValue = obj.getCompanyName();
-		if(attr == SupplierAttribute.contactName)
-			objectValue = obj.getContactName();
-		if(attr == SupplierAttribute.contactTitle)
-			objectValue = obj.getContactTitle();
-		if(attr == SupplierAttribute.country)
-			objectValue = obj.getCountry();
-		if(attr == SupplierAttribute.fax)
-			objectValue = obj.getFax();
-		if(attr == SupplierAttribute.homePage)
-			objectValue = obj.getHomePage();
-		if(attr == SupplierAttribute.phone)
-			objectValue = obj.getPhone();
-		if(attr == SupplierAttribute.postalCode)
-			objectValue = obj.getPostalCode();
-		if(attr == SupplierAttribute.region)
-			objectValue = obj.getRegion();
-
-		return operator.evaluate(objectValue, this.getValue());
-	}
-	private boolean evaluateCustomer(Customer obj) {
-		if(obj == null)
-			return false;
-		if(this.operator == null)
-			return true;
-
-		CustomerAttribute attr = (CustomerAttribute) this.attribute;
-		Object objectValue = null;
-
-		if(attr == CustomerAttribute.id)
-			objectValue = obj.getId();
-		if(attr == CustomerAttribute.city)
-			objectValue = obj.getCity();
-		if(attr == CustomerAttribute.companyName)
-			objectValue = obj.getCompanyName();
-		if(attr == CustomerAttribute.contactName)
-			objectValue = obj.getContactName();
-		if(attr == CustomerAttribute.contactTitle)
-			objectValue = obj.getContactTitle();
-		if(attr == CustomerAttribute.country)
-			objectValue = obj.getCountry();
-		if(attr == CustomerAttribute.fax)
-			objectValue = obj.getFax();
-		if(attr == CustomerAttribute.phone)
-			objectValue = obj.getPhone();
-		if(attr == CustomerAttribute.postalCode)
-			objectValue = obj.getPostalCode();
-		if(attr == CustomerAttribute.region)
-			objectValue = obj.getRegion();
-		if(attr == CustomerAttribute.address)
-			objectValue = obj.getAddress();
-
-		return operator.evaluate(objectValue, this.getValue());
-	}
-	private boolean evaluateOrder(Order obj) {
-		if(obj == null)
-			return false;
-		if(this.operator == null)
-			return true;
-
-		OrderAttribute attr = (OrderAttribute) this.attribute;
-		Object objectValue = null;
-
-		if(attr == OrderAttribute.id)
-			objectValue = obj.getId();
-		if(attr == OrderAttribute.freight)
-			objectValue = obj.getFreight();
-		if(attr == OrderAttribute.orderDate)
+		if(attr == OrdersAttribute.orderDate)
 			objectValue = obj.getOrderDate();
-		if(attr == OrderAttribute.requiredDate)
+		if(attr == OrdersAttribute.requiredDate)
 			objectValue = obj.getRequiredDate();
-		if(attr == OrderAttribute.shipAddress)
-			objectValue = obj.getShipAddress();
-		if(attr == OrderAttribute.shipCity)
-			objectValue = obj.getShipCity();
-		if(attr == OrderAttribute.shipCountry)
-			objectValue = obj.getShipCountry();
-		if(attr == OrderAttribute.shipName)
-			objectValue = obj.getShipName();
-		if(attr == OrderAttribute.shipPostalCode)
-			objectValue = obj.getShipPostalCode();
-		if(attr == OrderAttribute.shipRegion)
-			objectValue = obj.getShipRegion();
-		if(attr == OrderAttribute.shippedDate)
+		if(attr == OrdersAttribute.shippedDate)
 			objectValue = obj.getShippedDate();
+		if(attr == OrdersAttribute.freight)
+			objectValue = obj.getFreight();
+		if(attr == OrdersAttribute.shipName)
+			objectValue = obj.getShipName();
+		if(attr == OrdersAttribute.shipAddress)
+			objectValue = obj.getShipAddress();
+		if(attr == OrdersAttribute.shipCity)
+			objectValue = obj.getShipCity();
+		if(attr == OrdersAttribute.shipRegion)
+			objectValue = obj.getShipRegion();
+		if(attr == OrdersAttribute.shipPostalCode)
+			objectValue = obj.getShipPostalCode();
+		if(attr == OrdersAttribute.shipCountry)
+			objectValue = obj.getShipCountry();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}
-	private boolean evaluateCategory(Category obj) {
+	private boolean evaluateProducts(Products obj) {
 		if(obj == null)
 			return false;
 		if(this.operator == null)
 			return true;
 
-		CategoryAttribute attr = (CategoryAttribute) this.attribute;
+		ProductsAttribute attr = (ProductsAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == CategoryAttribute.id)
-			objectValue = obj.getId();
-		if(attr == CategoryAttribute.categoryName)
+		if(attr == ProductsAttribute.productId)
+			objectValue = obj.getProductId();
+		if(attr == ProductsAttribute.productName)
+			objectValue = obj.getProductName();
+		if(attr == ProductsAttribute.quantityPerUnit)
+			objectValue = obj.getQuantityPerUnit();
+		if(attr == ProductsAttribute.unitPrice)
+			objectValue = obj.getUnitPrice();
+		if(attr == ProductsAttribute.unitsInStock)
+			objectValue = obj.getUnitsInStock();
+		if(attr == ProductsAttribute.unitsOnOrder)
+			objectValue = obj.getUnitsOnOrder();
+		if(attr == ProductsAttribute.reorderLevel)
+			objectValue = obj.getReorderLevel();
+		if(attr == ProductsAttribute.discontinued)
+			objectValue = obj.getDiscontinued();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+	private boolean evaluateSuppliers(Suppliers obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		SuppliersAttribute attr = (SuppliersAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == SuppliersAttribute.supplierId)
+			objectValue = obj.getSupplierId();
+		if(attr == SuppliersAttribute.companyName)
+			objectValue = obj.getCompanyName();
+		if(attr == SuppliersAttribute.contactName)
+			objectValue = obj.getContactName();
+		if(attr == SuppliersAttribute.contactTitle)
+			objectValue = obj.getContactTitle();
+		if(attr == SuppliersAttribute.address)
+			objectValue = obj.getAddress();
+		if(attr == SuppliersAttribute.city)
+			objectValue = obj.getCity();
+		if(attr == SuppliersAttribute.region)
+			objectValue = obj.getRegion();
+		if(attr == SuppliersAttribute.postalCode)
+			objectValue = obj.getPostalCode();
+		if(attr == SuppliersAttribute.country)
+			objectValue = obj.getCountry();
+		if(attr == SuppliersAttribute.phone)
+			objectValue = obj.getPhone();
+		if(attr == SuppliersAttribute.fax)
+			objectValue = obj.getFax();
+		if(attr == SuppliersAttribute.homePage)
+			objectValue = obj.getHomePage();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+	private boolean evaluateCustomers(Customers obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		CustomersAttribute attr = (CustomersAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == CustomersAttribute.customerID)
+			objectValue = obj.getCustomerID();
+		if(attr == CustomersAttribute.companyName)
+			objectValue = obj.getCompanyName();
+		if(attr == CustomersAttribute.contactName)
+			objectValue = obj.getContactName();
+		if(attr == CustomersAttribute.contactTitle)
+			objectValue = obj.getContactTitle();
+		if(attr == CustomersAttribute.address)
+			objectValue = obj.getAddress();
+		if(attr == CustomersAttribute.city)
+			objectValue = obj.getCity();
+		if(attr == CustomersAttribute.region)
+			objectValue = obj.getRegion();
+		if(attr == CustomersAttribute.postalCode)
+			objectValue = obj.getPostalCode();
+		if(attr == CustomersAttribute.country)
+			objectValue = obj.getCountry();
+		if(attr == CustomersAttribute.phone)
+			objectValue = obj.getPhone();
+		if(attr == CustomersAttribute.fax)
+			objectValue = obj.getFax();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+	private boolean evaluateCategories(Categories obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		CategoriesAttribute attr = (CategoriesAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == CategoriesAttribute.categoryID)
+			objectValue = obj.getCategoryID();
+		if(attr == CategoriesAttribute.categoryName)
 			objectValue = obj.getCategoryName();
-		if(attr == CategoryAttribute.description)
+		if(attr == CategoriesAttribute.description)
 			objectValue = obj.getDescription();
-		if(attr == CategoryAttribute.picture)
+		if(attr == CategoriesAttribute.picture)
 			objectValue = obj.getPicture();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}
-	private boolean evaluateEmployee(Employee obj) {
+	private boolean evaluateShippers(Shippers obj) {
 		if(obj == null)
 			return false;
 		if(this.operator == null)
 			return true;
 
-		EmployeeAttribute attr = (EmployeeAttribute) this.attribute;
+		ShippersAttribute attr = (ShippersAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == EmployeeAttribute.id)
-			objectValue = obj.getId();
-		if(attr == EmployeeAttribute.address)
-			objectValue = obj.getAddress();
-		if(attr == EmployeeAttribute.birthDate)
-			objectValue = obj.getBirthDate();
-		if(attr == EmployeeAttribute.city)
-			objectValue = obj.getCity();
-		if(attr == EmployeeAttribute.country)
-			objectValue = obj.getCountry();
-		if(attr == EmployeeAttribute.extension)
-			objectValue = obj.getExtension();
-		if(attr == EmployeeAttribute.firstname)
-			objectValue = obj.getFirstname();
-		if(attr == EmployeeAttribute.hireDate)
-			objectValue = obj.getHireDate();
-		if(attr == EmployeeAttribute.homePhone)
-			objectValue = obj.getHomePhone();
-		if(attr == EmployeeAttribute.lastname)
-			objectValue = obj.getLastname();
-		if(attr == EmployeeAttribute.photo)
-			objectValue = obj.getPhoto();
-		if(attr == EmployeeAttribute.postalCode)
-			objectValue = obj.getPostalCode();
-		if(attr == EmployeeAttribute.region)
-			objectValue = obj.getRegion();
-		if(attr == EmployeeAttribute.salary)
-			objectValue = obj.getSalary();
-		if(attr == EmployeeAttribute.title)
+		if(attr == ShippersAttribute.shipperID)
+			objectValue = obj.getShipperID();
+		if(attr == ShippersAttribute.companyName)
+			objectValue = obj.getCompanyName();
+		if(attr == ShippersAttribute.phone)
+			objectValue = obj.getPhone();
+
+		return operator.evaluate(objectValue, this.getValue());
+	}
+	private boolean evaluateEmployees(Employees obj) {
+		if(obj == null)
+			return false;
+		if(this.operator == null)
+			return true;
+
+		EmployeesAttribute attr = (EmployeesAttribute) this.attribute;
+		Object objectValue = null;
+
+		if(attr == EmployeesAttribute.employeeID)
+			objectValue = obj.getEmployeeID();
+		if(attr == EmployeesAttribute.lastName)
+			objectValue = obj.getLastName();
+		if(attr == EmployeesAttribute.firstName)
+			objectValue = obj.getFirstName();
+		if(attr == EmployeesAttribute.title)
 			objectValue = obj.getTitle();
-		if(attr == EmployeeAttribute.notes)
-			objectValue = obj.getNotes();
-		if(attr == EmployeeAttribute.photoPath)
-			objectValue = obj.getPhotoPath();
-		if(attr == EmployeeAttribute.titleOfCourtesy)
+		if(attr == EmployeesAttribute.titleOfCourtesy)
 			objectValue = obj.getTitleOfCourtesy();
+		if(attr == EmployeesAttribute.birthDate)
+			objectValue = obj.getBirthDate();
+		if(attr == EmployeesAttribute.hireDate)
+			objectValue = obj.getHireDate();
+		if(attr == EmployeesAttribute.address)
+			objectValue = obj.getAddress();
+		if(attr == EmployeesAttribute.city)
+			objectValue = obj.getCity();
+		if(attr == EmployeesAttribute.region)
+			objectValue = obj.getRegion();
+		if(attr == EmployeesAttribute.postalCode)
+			objectValue = obj.getPostalCode();
+		if(attr == EmployeesAttribute.country)
+			objectValue = obj.getCountry();
+		if(attr == EmployeesAttribute.homePhone)
+			objectValue = obj.getHomePhone();
+		if(attr == EmployeesAttribute.extension)
+			objectValue = obj.getExtension();
+		if(attr == EmployeesAttribute.photo)
+			objectValue = obj.getPhoto();
+		if(attr == EmployeesAttribute.notes)
+			objectValue = obj.getNotes();
+		if(attr == EmployeesAttribute.photoPath)
+			objectValue = obj.getPhotoPath();
+		if(attr == EmployeesAttribute.salary)
+			objectValue = obj.getSalary();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}
@@ -310,43 +306,43 @@ public class SimpleCondition<E> extends Condition<E> {
 		RegionAttribute attr = (RegionAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == RegionAttribute.id)
-			objectValue = obj.getId();
-		if(attr == RegionAttribute.description)
-			objectValue = obj.getDescription();
+		if(attr == RegionAttribute.regionID)
+			objectValue = obj.getRegionID();
+		if(attr == RegionAttribute.regionDescription)
+			objectValue = obj.getRegionDescription();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}
-	private boolean evaluateTerritory(Territory obj) {
+	private boolean evaluateTerritories(Territories obj) {
 		if(obj == null)
 			return false;
 		if(this.operator == null)
 			return true;
 
-		TerritoryAttribute attr = (TerritoryAttribute) this.attribute;
+		TerritoriesAttribute attr = (TerritoriesAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == TerritoryAttribute.id)
-			objectValue = obj.getId();
-		if(attr == TerritoryAttribute.description)
-			objectValue = obj.getDescription();
+		if(attr == TerritoriesAttribute.territoryID)
+			objectValue = obj.getTerritoryID();
+		if(attr == TerritoriesAttribute.territoryDescription)
+			objectValue = obj.getTerritoryDescription();
 
 		return operator.evaluate(objectValue, this.getValue());
 	}
-		private boolean evaluateComposed_of(Composed_of obj) {
+		private boolean evaluateComposedOf(ComposedOf obj) {
 		if(obj == null)
 			return false;
 		if(this.operator == null)
 			return true;
 
-		Composed_ofAttribute attr = (Composed_ofAttribute) this.attribute;
+		ComposedOfAttribute attr = (ComposedOfAttribute) this.attribute;
 		Object objectValue = null;
 
-		if(attr == Composed_ofAttribute.unitPrice)
+		if(attr == ComposedOfAttribute.unitPrice)
 			objectValue = obj.getUnitPrice();
-		if(attr == Composed_ofAttribute.quantity)
+		if(attr == ComposedOfAttribute.quantity)
 			objectValue = obj.getQuantity();
-		if(attr == Composed_ofAttribute.discount)
+		if(attr == ComposedOfAttribute.discount)
 			objectValue = obj.getDiscount();
 
 		return operator.evaluate(objectValue, this.getValue());

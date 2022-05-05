@@ -63,7 +63,7 @@ public class RegionServiceImpl extends RegionService {
 			for(java.util.Map.Entry<RegionAttribute, Object> e : clause.entrySet()) {
 				RegionAttribute attr = e.getKey();
 				Object value = e.getValue();
-				if(attr == RegionAttribute.id ) {
+				if(attr == RegionAttribute.regionID ) {
 					String fieldName = "RegionID";
 					fieldName = "region." + fieldName;
 					fieldName = "territories.$[territories0]." + fieldName;
@@ -71,7 +71,7 @@ public class RegionServiceImpl extends RegionService {
 					fieldName = "'" + fieldName + "'";
 					res.add(fieldName + " : " + Util.getDelimitedMongoValue((value == null ? null : value.getClass()), (value == null ? null : value.toString())));
 				}
-				if(attr == RegionAttribute.description ) {
+				if(attr == RegionAttribute.regionDescription ) {
 					String fieldName = "RegionDescription";
 					fieldName = "region." + fieldName;
 					fieldName = "territories.$[territories0]." + fieldName;
@@ -101,7 +101,7 @@ public class RegionServiceImpl extends RegionService {
 					String valueString = Util.transformBSONValue(value);
 					boolean isConditionAttrEncountered = false;
 	
-					if(attr == RegionAttribute.id ) {
+					if(attr == RegionAttribute.regionID ) {
 						isConditionAttrEncountered = true;
 					
 						String mongoOp = op.getMongoDBOperator();
@@ -117,7 +117,7 @@ public class RegionServiceImpl extends RegionService {
 						res = "territories." + res;
 					res = "'" + res;
 					}
-					if(attr == RegionAttribute.description ) {
+					if(attr == RegionAttribute.regionDescription ) {
 						isConditionAttrEncountered = true;
 					
 						String mongoOp = op.getMongoDBOperator();
@@ -186,7 +186,7 @@ public class RegionServiceImpl extends RegionService {
 					String valueString = Util.transformBSONValue(value);
 					boolean isConditionAttrEncountered = false;
 	
-					if(attr == RegionAttribute.id ) {
+					if(attr == RegionAttribute.regionID ) {
 						isConditionAttrEncountered = true;
 						String mongoOp = op.getMongoDBOperator();
 						String preparedValue = valueString;
@@ -217,7 +217,7 @@ public class RegionServiceImpl extends RegionService {
 						else
 							query = bson;
 					}
-					if(attr == RegionAttribute.description ) {
+					if(attr == RegionAttribute.regionDescription ) {
 						isConditionAttrEncountered = true;
 						String mongoOp = op.getMongoDBOperator();
 						String preparedValue = valueString;
@@ -332,25 +332,25 @@ public class RegionServiceImpl extends RegionService {
 							Region region2 = (Region) region1.clone();
 							boolean toAdd2  = false;
 							WrappedArray array2  = null;
-							// 	attribute Region.description for field RegionDescription			
-							nestedRow =  r2;
-							nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("region");
-							if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("RegionDescription")) {
-								if(nestedRow.getAs("RegionDescription")==null)
-									region2.setDescription(null);
-								else{
-									region2.setDescription(Util.getStringValue(nestedRow.getAs("RegionDescription")));
-									toAdd2 = true;					
-									}
-							}
-							// 	attribute Region.id for field RegionID			
+							// 	attribute Region.regionID for field RegionID			
 							nestedRow =  r2;
 							nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("region");
 							if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("RegionID")) {
 								if(nestedRow.getAs("RegionID")==null)
-									region2.setId(null);
+									region2.setRegionID(null);
 								else{
-									region2.setId(Util.getIntegerValue(nestedRow.getAs("RegionID")));
+									region2.setRegionID(Util.getIntegerValue(nestedRow.getAs("RegionID")));
+									toAdd2 = true;					
+									}
+							}
+							// 	attribute Region.regionDescription for field RegionDescription			
+							nestedRow =  r2;
+							nestedRow = (nestedRow == null) ? null : (Row) nestedRow.getAs("region");
+							if(nestedRow != null && Arrays.asList(nestedRow.schema().fieldNames()).contains("RegionDescription")) {
+								if(nestedRow.getAs("RegionDescription")==null)
+									region2.setRegionDescription(null);
+								else{
+									region2.setRegionDescription(Util.getStringValue(nestedRow.getAs("RegionDescription")));
 									toAdd2 = true;					
 									}
 							}
@@ -373,7 +373,7 @@ public class RegionServiceImpl extends RegionService {
 				return list_res.iterator();
 	
 		}, Encoders.bean(Region.class));
-		res= res.dropDuplicates(new String[]{"id"});
+		res= res.dropDuplicates(new String[]{"regionID"});
 		return res;
 		
 	}
@@ -383,33 +383,33 @@ public class RegionServiceImpl extends RegionService {
 	
 	
 	
-	public Dataset<Region> getRegionListInContains(conditions.Condition<conditions.TerritoryAttribute> territory_condition,conditions.Condition<conditions.RegionAttribute> region_condition)		{
+	public Dataset<Region> getRegionListInLocatedIn(conditions.Condition<conditions.TerritoriesAttribute> territories_condition,conditions.Condition<conditions.RegionAttribute> region_condition)		{
 		MutableBoolean region_refilter = new MutableBoolean(false);
 		List<Dataset<Region>> datasetsPOJO = new ArrayList<Dataset<Region>>();
-		Dataset<Territory> all = null;
+		Dataset<Territories> all = null;
 		boolean all_already_persisted = false;
-		MutableBoolean territory_refilter;
+		MutableBoolean territories_refilter;
 		org.apache.spark.sql.Column joinCondition = null;
 		
 		
-		Dataset<Contains> res_contains_region;
+		Dataset<LocatedIn> res_locatedIn_region;
 		Dataset<Region> res_Region;
-		// Role 'territory' mapped to EmbeddedObject 'region' 'Region' containing 'Territory' 
-		territory_refilter = new MutableBoolean(false);
-		res_contains_region = containsService.getContainsListInmongoSchemaEmployeesterritoriesregion(territory_condition, region_condition, territory_refilter, region_refilter);
-		if(territory_refilter.booleanValue()) {
+		// Role 'territories' mapped to EmbeddedObject 'region' 'Region' containing 'Territories' 
+		territories_refilter = new MutableBoolean(false);
+		res_locatedIn_region = locatedInService.getLocatedInListInmongoDBEmployeesterritoriesregion(territories_condition, region_condition, territories_refilter, region_refilter);
+		if(territories_refilter.booleanValue()) {
 			if(all == null)
-				all = new TerritoryServiceImpl().getTerritoryList(territory_condition);
+				all = new TerritoriesServiceImpl().getTerritoriesList(territories_condition);
 			joinCondition = null;
-			joinCondition = res_contains_region.col("territory.id").equalTo(all.col("id"));
+			joinCondition = res_locatedIn_region.col("territories.territoryID").equalTo(all.col("territoryID"));
 			if(joinCondition == null)
-				res_Region = res_contains_region.join(all).select("region.*").as(Encoders.bean(Region.class));
+				res_Region = res_locatedIn_region.join(all).select("region.*").as(Encoders.bean(Region.class));
 			else
-				res_Region = res_contains_region.join(all, joinCondition).select("region.*").as(Encoders.bean(Region.class));
+				res_Region = res_locatedIn_region.join(all, joinCondition).select("region.*").as(Encoders.bean(Region.class));
 		
 		} else
-			res_Region = res_contains_region.map((MapFunction<Contains,Region>) r -> r.getRegion(), Encoders.bean(Region.class));
-		res_Region = res_Region.dropDuplicates(new String[] {"id"});
+			res_Region = res_locatedIn_region.map((MapFunction<LocatedIn,Region>) r -> r.getRegion(), Encoders.bean(Region.class));
+		res_Region = res_Region.dropDuplicates(new String[] {"regionID"});
 		datasetsPOJO.add(res_Region);
 		
 		
@@ -452,8 +452,8 @@ public class RegionServiceImpl extends RegionService {
 		//TODO using the id
 		return;
 	}
-	public void updateRegionListInContains(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,
+	public void updateRegionListInLocatedIn(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,
 		conditions.Condition<conditions.RegionAttribute> region_condition,
 		
 		conditions.SetClause<conditions.RegionAttribute> set
@@ -461,26 +461,26 @@ public class RegionServiceImpl extends RegionService {
 		//TODO
 	}
 	
-	public void updateRegionListInContainsByTerritoryCondition(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,
+	public void updateRegionListInLocatedInByTerritoriesCondition(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,
 		conditions.SetClause<conditions.RegionAttribute> set
 	){
-		updateRegionListInContains(territory_condition, null, set);
+		updateRegionListInLocatedIn(territories_condition, null, set);
 	}
 	
-	public void updateRegionInContainsByTerritory(
-		pojo.Territory territory,
+	public void updateRegionInLocatedInByTerritories(
+		pojo.Territories territories,
 		conditions.SetClause<conditions.RegionAttribute> set 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
-	public void updateRegionListInContainsByRegionCondition(
+	public void updateRegionListInLocatedInByRegionCondition(
 		conditions.Condition<conditions.RegionAttribute> region_condition,
 		conditions.SetClause<conditions.RegionAttribute> set
 	){
-		updateRegionListInContains(null, region_condition, set);
+		updateRegionListInLocatedIn(null, region_condition, set);
 	}
 	
 	
@@ -492,29 +492,29 @@ public class RegionServiceImpl extends RegionService {
 		//TODO using the id
 		return;
 	}
-	public void deleteRegionListInContains(	
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition,	
+	public void deleteRegionListInLocatedIn(	
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition,	
 		conditions.Condition<conditions.RegionAttribute> region_condition){
 			//TODO
 		}
 	
-	public void deleteRegionListInContainsByTerritoryCondition(
-		conditions.Condition<conditions.TerritoryAttribute> territory_condition
+	public void deleteRegionListInLocatedInByTerritoriesCondition(
+		conditions.Condition<conditions.TerritoriesAttribute> territories_condition
 	){
-		deleteRegionListInContains(territory_condition, null);
+		deleteRegionListInLocatedIn(territories_condition, null);
 	}
 	
-	public void deleteRegionInContainsByTerritory(
-		pojo.Territory territory 
+	public void deleteRegionInLocatedInByTerritories(
+		pojo.Territories territories 
 	){
 		//TODO get id in condition
 		return;	
 	}
 	
-	public void deleteRegionListInContainsByRegionCondition(
+	public void deleteRegionListInLocatedInByRegionCondition(
 		conditions.Condition<conditions.RegionAttribute> region_condition
 	){
-		deleteRegionListInContains(null, region_condition);
+		deleteRegionListInLocatedIn(null, region_condition);
 	}
 	
 }
